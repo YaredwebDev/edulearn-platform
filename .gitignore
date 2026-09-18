@@ -1,0 +1,6 @@
+# runtime artifacts
+*.db-wal
+*.db-shm
+platform.db.backup-*
+*.pyc
+__pycache__/

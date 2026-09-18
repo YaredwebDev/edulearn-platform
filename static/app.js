@@ -234,6 +234,12 @@ async function viewSubject(id){
   const unlocked=d.progress && d.progress.final_unlocked;
   const examBtn=`<button class="btn ${unlocked?'btn-green':'btn-ghost'}" ${unlocked?'':'disabled'} style="margin-top:14px" onclick="location.hash='#/exam/${id}'">
     ${unlocked?'Take the 125-question final examination':'Final examination unlocks when all units are complete'}</button>`;
+  const flatLessons=d.units.reduce((acc,un)=>acc.concat(un.lessons),[]);
+  const nextLesson=flatLessons.find(l=>l.status!=='Completed');
+  const doneCount=d.progress?d.progress.lessons_done:0;
+  const resumeBtn=nextLesson?`<button class="btn btn-primary" style="margin-top:14px" onclick="location.hash='#/lesson/${nextLesson.id}'">
+    ${doneCount?'Continue where you left off':'Start learning'} — ${esc(nextLesson.title)} →</button>`
+    :`<div class="muted" style="margin-top:12px">All lessons complete — take the final examination below.</div>`;
   const units=d.units.map(un=>{
     const uDone=un.done, uTot=un.total;
     const lessons=un.lessons.map(l=>{
@@ -260,6 +266,7 @@ async function viewSubject(id){
     <div class="card mt16" style="padding:14px 18px"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <div style="font-weight:700">Subject progress</div><div style="flex:1;max-width:300px"><div class="pbar"><div class="pfill blue" style="width:${d.progress?pct(d.progress.lessons_done,d.progress.lessons_total):0}%"></div></div></div>
       <span class="muted">${d.progress?d.progress.lessons_done+'/'+d.progress.lessons_total+' lessons · '+d.progress.units_done+'/'+d.progress.units_total+' units':''}</span></div>
+      ${resumeBtn}
       ${examBtn}</div>
     <div class="unitlist mt24">${units}</div>
     <div class="card mt16"><b>Option B — Get the whole subject as a study pack</b>

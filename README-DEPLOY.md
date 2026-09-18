@@ -5,11 +5,37 @@ SQLite database (already populated with Grades 9–11 content), SPA front end,
 and the bundled study-note content.
 
 ## What's inside
-- `server.py` / `db.py` / `security.py` / `admin_routes.py` / `importer.py` / `generator.py` — backend
+- `server.py` / `db.py` / `security.py` / `admin_routes.py` — backend
+- `notes_import.py` — structured-notes importer (Grade → Subject → Unit → Lesson)
+- `qbank.py` — assessment builder (10 questions + flashcards per lesson)
+- `build_course.py` — one-command pipeline: notes files → complete course
 - `static/` — single-page app (`index.html`, `app.js`, `style.css`)
-- `platform.db` — SQLite database with 14 subjects / 776 lessons / flashcards / assessment bank
-- `content/` — the original markdown study notes (used to rebuild the DB if needed)
-- `requirements.txt`, `Procfile`, `render.yaml`, `Dockerfile`, `bootstrap.py`
+- `platform.db` — SQLite database with 14 subjects / 776 lessons / **7,760 assessment questions** / flashcards
+- `importer.py`, `generator.py`, `author_chem.py`, `bootstrap.py` — original content/seed tooling
+- `requirements.txt`, `Procfile`, `render.yaml`, `Dockerfile`
+
+## Building the course from your notes files
+Put the notes files in a folder (`*.html`, `*.md` or `*.txt`, named e.g.
+`Chemistry_Grade9_Structured.html`) and run one command:
+
+```
+python3 build_course.py --notes /path/to/notes      # backup → import → 10 questions/lesson → report
+python3 build_course.py --notes DIR --only 9,10     # only these grades
+python3 build_course.py --notes DIR --dry           # preview: shows units/lessons, writes nothing
+python3 build_course.py --questions-only            # rebuild the question bank only
+```
+
+* Existing student accounts, progress and certificates for a subject are **re-carried**
+  across the content swap lesson-by-lesson; use `--merge` to keep the old lessons instead.
+* The importer understands real `<h*>` headings, pseudo-headings (`<p><strong>Unit 2 …`)
+  and flat documents whose lessons are numbered `3.2 …` (units are inferred from the number).
+* Every lesson body is stored verbatim, so the reader, flashcards, unit PDFs and quizzes all work.
+* Question generation is grounded in the lesson text only: definitions, quoted statements,
+  deliberately-altered statements and worked calculations. Nothing is invented.
+* Admin review lives at `/api/admin` → *Question bank* (approve / edit / add your own).
+  Approved questions are never overwritten by a rebuild — the generator only tops up.
+
+Environment: set `EDULEARN_DB` to point at a database on persistent storage.
 
 ## Run locally
 ```
@@ -50,9 +76,9 @@ and progress across restarts you must use **persistent storage**:
   backups and rate limiting.
 
 ## First-run data
-`platform.db` ships fully populated, so no import is normally needed. If the DB
-is ever deleted/empty, `python bootstrap.py` rebuilds every subject from
-`content/` and re-seeds the Grade 11 Chemistry assessment bank.
+`platform.db` ships fully populated (14 subjects, 776 lessons, 7,760 questions),
+so no import is normally needed. If the DB is ever deleted/empty, rebuild it from
+your notes folder with `python3 build_course.py --notes DIR`.
 
 ## Admin access
 The admin panel is at `/api/admin` (in the SPA: bottom link / `#/admin`). Access

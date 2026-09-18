@@ -1,7 +1,7 @@
 """SQLite data layer for the Grade 9-12 digital learning platform."""
 import os, sqlite3, threading, json, time
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "platform.db")
+DB_PATH = os.environ.get("EDULEARN_DB") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "platform.db")
 _local = threading.local()
 
 SCHEMA = """
