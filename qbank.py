@@ -35,6 +35,9 @@ BAD_TERM = ("example", "note", "n.b", "nb", "tip", "trap", "answer", "solution",
             "key terms", "definition", "types", "steps", "rules", "check", "source", "unit",
             "lesson", "chapter", "review", "objective", "introduction", "conclusion", "overview",
             "quick revision", "practice", "self-check", "did you know", "warning", "caution")
+INSTRUCTION = re.compile(r"^\s*(lab\s*activity|activity|exercise|task|inquiry|project|practical|experiment|"
+                         r"do this|discuss|write|draw|calculate|work\s*(it\s*)?out|try\s|read\s|copy\s|"
+                         r"complete\s+the|answer\s+the|study\s+the|use\s+the)", re.I)
 SKIP_START = ("which", "what", "how", "why", "when", "who", "where", "list", "state", "explain",
               "describe", "give", "write", "calculate", "compute", "define", "name", "find",
               "solve", "suppose", "if ")
@@ -336,12 +339,31 @@ class Corpus:
 
 
 # ==================================================================== generation
+def _tokens(s):
+    s = re.sub(r"\*\*|\*|`|>", "", s or "")
+    s = re.sub(r"^\s*[-*•]\s*", "", s, flags=re.M)
+    return re.findall(r"[a-z0-9]+", s.lower())
+
+
+def occurs_in(body_tokens, frag_tokens):
+    """Word-sequence containment (markdown-, case- and punctuation-insensitive)."""
+    if not frag_tokens or len(frag_tokens) > len(body_tokens):
+        return False
+    first = frag_tokens[0]
+    n = len(frag_tokens)
+    for i, tok in enumerate(body_tokens):
+        if tok == first and body_tokens[i:i + n] == frag_tokens:
+            return True
+    return False
+
+
 class LessonQuestions:
     def __init__(self, lesson, corpus):
         self.lesson = lesson
         self.lid = lesson["id"]
         self.md = lesson["content_md"] or ""
         self.corpus = corpus
+        self.body_tokens = _tokens((lesson["content_md"] or "") + "\n" + (lesson.get("content_html") or ""))
         self.pairs = extract_pairs(self.md)
         self.sents = sentences(self.md)
         self.blocks = bullets(self.md)
@@ -364,8 +386,10 @@ class LessonQuestions:
         k = self.key(prompt)
         if k in self.used:
             return False
-        prompt_c, choices_c = strip_md(str(prompt)), [strip_md(str(c)) for c in choices]
-        why_c = strip_md(str(why))
+        prompt_c = re.sub(r"\*+", "", strip_md(str(prompt))).replace(" :", ":")
+        prompt_c = re.sub(r"\s{2,}", " ", prompt_c).strip()
+        choices_c = [re.sub(r"\s{2,}", " ", re.sub(r"\*+", "", strip_md(str(c)))).strip() for c in choices]
+        why_c = re.sub(r"\s{2,}", " ", re.sub(r"\*+", "", strip_md(str(why)))).strip()
         if any(("→" in c or "↔" in c or "|" in c or "**" in c) for c in choices_c):
             return False
         if "|" in prompt_c or "**" in prompt_c:
@@ -381,6 +405,16 @@ class LessonQuestions:
         choices = [correct] + list(wrongs)
         random.shuffle(choices)
         return choices, choices.index(correct)
+
+    # -- validation ---------------------------------------------------------
+    def in_lesson(self, text):
+        """Strictly true when the text occurs in this lesson (no invented wording)."""
+        return occurs_in(self.body_tokens, _tokens(text))
+
+    def can_assert_false(self, altered, original):
+        """A statement may only be marked False if the altered wording is NOT in the
+        lesson while the original wording IS."""
+        return self.in_lesson(original) and not self.in_lesson(altered)
 
     # -- strategies ---------------------------------------------------------
     def strategy_definitions(self, want):
@@ -549,9 +583,11 @@ class LessonQuestions:
                 continue
             if not re.match(r"^[A-Z0-9\"'(]", s) or len(s) > 220:
                 continue
-            if low.startswith(("note", "tip", "remember", "did you know")):
+            if low.startswith(("note", "tip", "remember", "did you know")) or INSTRUCTION.match(s):
                 continue
-            stmt = fit(s, 180).rstrip(".") + "."
+            if len(s) > 180:
+                continue
+            stmt = s.rstrip(".") + "."
             if t < want_true and self.push("tf", "True or False: %s" % stmt, ["True", "False"], 0,
                                            "Correct — the lesson states: %s" % s,
                                            self.lesson["title"], "Easy"):
@@ -568,7 +604,9 @@ class LessonQuestions:
                     fake = "%g" % (base * random.choice([2, 3, 5, 0.5, 10]))
                     if fake != target and re.search(r"(?<![\w.])" + re.escape(target) + r"(?![\w])", s):
                         altered = re.sub(r"(?<![\w.])" + re.escape(target) + r"(?![\w])", fake, s, count=1)
-                        if self.push("tf", "True or False: %s" % (fit(altered, 180).rstrip(".") + "."),
+                        if len(altered) > 180 or not self.can_assert_false(altered, s):
+                            continue
+                        if self.push("tf", "True or False: %s" % (altered.rstrip(".") + "."),
                                      ["True", "False"], 1,
                                      "False — the lesson states “%s”, not %s." % (s, fake),
                                      self.lesson["title"], "Medium"):
@@ -581,7 +619,9 @@ class LessonQuestions:
                     if wrongs:
                         altered = re.sub(r"(?<![A-Za-z])" + re.escape(hit) + r"(?![A-Za-z])",
                                          wrongs[0], s, count=1, flags=re.I)
-                        if self.push("tf", "True or False: %s" % (fit(altered, 180).rstrip(".") + "."),
+                        if len(altered) > 180 or not self.can_assert_false(altered, s):
+                            continue
+                        if self.push("tf", "True or False: %s" % (altered.rstrip(".") + "."),
                                      ["True", "False"], 1,
                                      "False — the lesson says “%s”, not “%s”." % (s, wrongs[0]),
                                      self.lesson["title"], "Medium"):
@@ -598,9 +638,9 @@ class LessonQuestions:
             item = item.strip()
             if len(item) < 22 or "?" in item or item.endswith(":"):
                 continue
-            if item.lower().startswith(SKIP_START):
+            if item.lower().startswith(SKIP_START) or len(item) > 180 or INSTRUCTION.match(item):
                 continue
-            stmt = fit(item, 180).rstrip(".") + "."
+            stmt = item.rstrip(".") + "."
             if t < want_true and self.push("tf", "True or False: %s" % stmt, ["True", "False"], 0,
                                            "Correct — this lesson states: %s" % item,
                                            self.lesson["title"], "Easy"):
@@ -616,7 +656,8 @@ class LessonQuestions:
                         continue
                     fake = "%g" % (base * random.choice([2, 3, 5, 0.5]))
                     altered = re.sub(r"(?<![\w.])" + re.escape(target) + r"(?![\w])", fake, item, count=1)
-                    if altered != item and self.push("tf", "True or False: %s" % (fit(altered, 180).rstrip(".") + "."),
+                    if altered != item and len(altered) <= 180 and self.can_assert_false(altered, item) and \
+                       self.push("tf", "True or False: %s" % (altered.rstrip(".") + "."),
                                                      ["True", "False"], 1,
                                                      "False — the lesson states “%s”, not %s." % (item, fake),
                                                      self.lesson["title"], "Medium"):
@@ -628,7 +669,9 @@ class LessonQuestions:
                     wrongs = self.corpus.terms_for(self.lid, 1, exclude=hit)
                     if wrongs:
                         altered = re.sub(r"(?<![A-Za-z])" + re.escape(hit) + r"(?![A-Za-z])", wrongs[0], item, count=1, flags=re.I)
-                        if self.push("tf", "True or False: %s" % (fit(altered, 180).rstrip(".") + "."),
+                        if len(altered) > 180 or not self.can_assert_false(altered, item):
+                            continue
+                        if self.push("tf", "True or False: %s" % (altered.rstrip(".") + "."),
                                      ["True", "False"], 1,
                                      "False — the lesson says “%s”, not “%s”." % (item, wrongs[0]),
                                      self.lesson["title"], "Medium"):
@@ -661,7 +704,9 @@ class LessonQuestions:
             out.append(t)
         if len(out) < 8:
             return []
-        looks_like_list = (len(self.sents) <= 6) or ("key term" in self.lesson["title"].lower())
+        looks_like_list = (len(self.sents) <= 4) or ("key term" in self.lesson["title"].lower())
+        if "key term" not in self.lesson["title"].lower() and len(self.sents) > 4:
+            return []
         avg_len = sum(len(t) for t in out) / len(out)
         return out if looks_like_list and avg_len <= 30 else []
 
@@ -706,12 +751,15 @@ class LessonQuestions:
         for t in terms:
             if made >= want:
                 break
+            if not self.in_lesson(t):
+                continue
             if self.push("tf", "True or False: “%s” is one of the key terms of this lesson." % t,
                          ["True", "False"], 0,
                          "Correct — “%s” appears in this lesson's key terms." % t,
                          self.lesson["title"], "Easy"):
                 made += 1
-        others = [x for x in self.corpus.terms_for(self.lid, 30) if x.lower() not in {y.lower() for y in terms}]
+        others = [x for x in self.corpus.terms_for(self.lid, 30)
+                  if x.lower() not in {y.lower() for y in terms} and not self.in_lesson(x)]
         for t in others:
             if made >= want:
                 break
@@ -765,6 +813,11 @@ class LessonQuestions:
                     wrongs.append(v)
                 if len(wrongs) == 3:
                     break
+            if len(wrongs) < 3:
+                continue
+            if not self.in_lesson(st):
+                continue
+            wrongs = [w for w in wrongs if not self.in_lesson(w)]
             if len(wrongs) < 3:
                 continue
             choices, idx = self.order(fit(st, 160), wrongs)

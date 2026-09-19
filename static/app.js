@@ -410,7 +410,7 @@ async function viewExam(sid){
   // fetch questions
   const qd=await api(`/api/subject/${sid}/exam/questions`,{method:'POST',body:{}});
   const qs=qd.questions;
-  window.__exam={qs,sel:{},step:0,sid};
+  window.__exam={qs,sel:{},step:0,sid,session:qd.session_id,needed:qd.needed};
   renderExam(u,sid,qs,qd.count);
 }
 function renderExam(u,sid,qs,count){
@@ -420,7 +420,7 @@ function renderExam(u,sid,qs,count){
   $app.innerHTML=`${topbar(u)}<div class="wrap" style="max-width:820px;padding-top:16px;padding-bottom:60px">
     <div class="crumb"><a href="#/subject/${sid}">← Back to subject</a></div>
     <div class="card"><h2 style="margin:0 0 4px">Final Examination — Grade ${u.grade}</h2>
-    <div class="muted">Comprehensive subject examination. Pass mark to certify: <b>100 / ${qs.length}</b>.</div>
+    <div class="muted">Comprehensive subject examination. Pass mark to certify: <b>${passMark()} / ${qs.length}</b>.</div>
     <div class="pbar mt8"><div class="pfill" style="width:${pct(answered,qs.length)}%"></div></div>
     <div style="display:flex;gap:14px;margin-top:6px"><span class="muted" style="font-size:13px">${answered} of ${qs.length} answered</span>
     <span style="font-size:13px" class="muted">Question ${window.__exam.step+1} of ${qs.length}</span></div></div>
@@ -431,20 +431,21 @@ function renderExam(u,sid,qs,count){
       </div></div></div>`;
   window.scrollTo(0,0);
 }
+function passMark(){const w=window.__exam;if(!w)return 100;const n=w.qs.length;return n>=125?100:Math.max(1,Math.round(n*0.8));}
 function examChoose(qid,idx){window.__exam.sel[qid]=idx;renderExam(currentUser(),window.__exam.sid,window.__exam.qs,window.__exam.qs.length);}
 function examNav(d){const w=window.__exam;w.step=Math.max(0,Math.min(w.qs.length-1,w.step+d));renderExam(currentUser(),w.sid,w.qs,w.qs.length);}
 async function examSubmit(){
   const w=window.__exam;const un={};for(const q of w.qs)un[q.id]=w.sel[q.id]==null?-1:w.sel[q.id];
-  let res;try{res=await api(`/api/subject/${w.sid}/exam/submit`,{method:'POST',body:{answers:un}});}catch(e){alert(e.message);return;}
+  let res;try{res=await api(`/api/subject/${w.sid}/exam/submit`,{method:'POST',body:{answers:un,session_id:w.session}});}catch(e){alert(e.message);return;}
   if(res.passed_cert){
     $app.innerHTML=`${topbar(currentUser())}<div class="wrap" style="max-width:700px;text-align:center;padding:30px 0">
       <h1>Subject completed</h1>
-      <p>You scored <b>${res.correct}/${res.total}</b> on the final examination, meeting the pass standard of 100/${res.total}. Your certificate of completion is now issued.</p>
+      <p>You scored <b>${res.correct}/${res.total}</b> (${res.percent}%) on the final examination, meeting the pass standard of ${res.needed}/${res.total}. Your certificate of completion is now issued.</p>
       <button class="btn btn-green mt8" onclick="location.hash='#/cert/${res.cert_id}'">View your certificate</button></div>`;
   }else{
     $app.innerHTML=`${topbar(currentUser())}<div class="wrap" style="max-width:700px;text-align:center;padding:30px 0">
       <h1>Certificate not issued</h1>
-      <p>Your score was <b>${res.correct}/${res.total}</b>. To be certified you must score at least <b>100/${res.total}</b> on the final examination.</p>
+      <p>Your score was <b>${res.correct}/${res.total}</b> (${res.percent}%). To be certified you must score at least <b>${res.needed}/${res.total}</b> on the final examination.</p>
       <p class="muted">Review your subject lessons, revise with the flashcards, and attempt the final examination again.</p>
       <button class="btn btn-primary mt8" onclick="location.hash='#/subject/${w.sid}'">Review subject lessons</button></div>`;
   }

@@ -142,6 +142,15 @@ CREATE TABLE IF NOT EXISTS user_notifications(
   read INTEGER DEFAULT 0,
   PRIMARY KEY(user_id, notification_id)
 );
+CREATE TABLE IF NOT EXISTS exam_sessions(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  subject_id INTEGER NOT NULL,
+  question_ids TEXT NOT NULL,      -- JSON array of the delivered question ids
+  returned INTEGER DEFAULT 0,      -- 1 once the result has been recorded
+  created_at REAL,
+  submitted_at REAL
+);
 CREATE TABLE IF NOT EXISTS admin_sessions(
   token TEXT PRIMARY KEY,
   created_at REAL
@@ -152,6 +161,7 @@ CREATE INDEX IF NOT EXISTS ix_questions_final ON questions(subject_id) WHERE sco
 CREATE INDEX IF NOT EXISTS ix_flashcards_lesson ON flashcards(lesson_id);
 CREATE INDEX IF NOT EXISTS ix_lp ON lesson_progress(user_id);
 CREATE INDEX IF NOT EXISTS ix_attempts_user ON attempts(user_id);
+CREATE INDEX IF NOT EXISTS ix_exam_sessions ON exam_sessions(user_id, subject_id);
 """
 
 def _conn():

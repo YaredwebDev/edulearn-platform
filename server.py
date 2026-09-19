@@ -421,14 +421,23 @@ def get_exam_questions(request: Request, sid: int):
     sp = db.query("SELECT * FROM subject_progress WHERE user_id=? AND subject_id=?", (u["id"], sid), one=True)
     if not sp or not sp["final_unlocked"]:
         return fail("Locked.", 403)
+    # prefer reviewed questions, then top up from the generated lesson bank
     pool = db.query("SELECT id,prompt,qtype,choices,answer_index,difficulty,concept FROM questions "
                     "WHERE subject_id=? AND status='Approved' ORDER BY RANDOM()", (sid,))
-    if not pool:
-        pool = db.query("SELECT id,prompt,qtype,choices,answer_index,difficulty,concept FROM questions "
-                        "WHERE subject_id=? AND status!='Rejected' ORDER BY RANDOM()", (sid,))
+    if len(pool) < 125:
+        extra = db.query("SELECT id,prompt,qtype,choices,answer_index,difficulty,concept FROM questions "
+                         "WHERE subject_id=? AND status NOT IN ('Approved','Rejected') ORDER BY RANDOM()", (sid,))
+        have = {q["id"] for q in pool}
+        pool += [q for q in extra if q["id"] not in have]
     if len(pool) > 125:
         pool = random.sample(pool, 125)
-    return jsonok({"count": len(pool), "questions": [sanitize_question(q) for q in pool]})
+    # freeze the delivered paper so it can be scored against exactly this set
+    db.execute("UPDATE exam_sessions SET returned=1 WHERE user_id=? AND subject_id=? AND returned=0", (u["id"], sid))
+    session_id = db.execute(
+        "INSERT INTO exam_sessions(user_id,subject_id,question_ids,returned,created_at) VALUES(?,?,?,0,?)",
+        (u["id"], sid, json.dumps([q["id"] for q in pool]), db.now()))
+    return jsonok({"count": len(pool), "session_id": session_id,
+                   "questions": [sanitize_question(q) for q in pool]})
 
 @app.post("/api/subject/{sid}/exam/submit")
 async def submit_exam(request: Request, sid: int):
@@ -440,10 +449,22 @@ async def submit_exam(request: Request, sid: int):
     if not sp or not sp["final_unlocked"]:
         return fail("Locked.", 403)
     body = await request.json(); answers = body.get("answers", {}) or {}
-    qs = db.query("SELECT id,answer_index FROM questions WHERE subject_id=? AND status='Approved'", (sid,))
-    if not qs:
+    session = None
+    if body.get("session_id"):
+        session = db.query("SELECT * FROM exam_sessions WHERE id=? AND user_id=? AND subject_id=? AND returned=0",
+                           (body["session_id"], u["id"], sid), one=True)
+    if not session:                 # recover the newest paper handed to this student
+        session = db.query("SELECT * FROM exam_sessions WHERE user_id=? AND subject_id=? AND returned=0 "
+                           "ORDER BY id DESC LIMIT 1", (u["id"], sid), one=True)
+    if session:
+        qids = json.loads(session["question_ids"])
+        marks = ",".join("?" * len(qids))
+        qs = db.query("SELECT id,answer_index FROM questions WHERE id IN (%s)" % marks, tuple(qids)) if qids else []
+        started = session["created_at"]
+        db.execute("UPDATE exam_sessions SET returned=1, submitted_at=? WHERE id=?", (db.now(), session["id"]))
+    else:                           # paper opened before this change
         qs = db.query("SELECT id,answer_index FROM questions WHERE subject_id=? AND status!='Rejected'", (sid,))
-    # use only the questions present in answers pool that match the delivered exam (we compare by id set)
+        started = None
     total = len(qs)
     correct = 0
     for q in qs:
@@ -452,27 +473,27 @@ async def submit_exam(request: Request, sid: int):
         if sel == q["answer_index"]:
             correct += 1
     percent = round((correct / total) * 100) if total else 0
+    needed = 100 if total >= 125 else max(1, round(total * 0.8))   # 100/125 standard
+    passed_cert = correct >= needed
     db.execute("INSERT INTO attempts(user_id,scope,subject_id,total,correct,percent,passed,answers,started_at,submitted_at) "
                "VALUES(?,?,?,?,?,?,?,?,?,?)",
-               (u["id"], "final", sid, total, correct, percent, 1 if percent >= 80 else 0,
-                json.dumps(answers), db.now(), db.now()))
-    # certification: require >=100 (out of 125) correct
-    passed_cert = (correct >= 100)
+               (u["id"], "final", sid, total, correct, percent, 1 if passed_cert else 0,
+                json.dumps(answers), started, db.now()))
     if passed_cert:
-        # issue certificate if not already
         existing = db.query("SELECT id FROM certificates WHERE user_id=? AND subject_id=?", (u["id"], sid), one=True)
         if not existing:
             cert_id = issue_certificate(u["id"], sid, s, correct, total)
         else:
             cert_id = db.query("SELECT cert_id FROM certificates WHERE user_id=? AND subject_id=?", (u["id"], sid), one=True)["cert_id"]
-        db.execute("UPDATE subject_progress SET final_passed=1,best_exam=?,best_exam_total=?,status='Exam Passed' WHERE user_id=? AND subject_id=?", (correct, total, u["id"], sid))
+        db.execute("UPDATE subject_progress SET final_passed=1,best_exam=?,best_exam_total=?,status='Exam Passed' WHERE user_id=? AND subject_id=?",
+                   (correct, total, u["id"], sid))
         notify_issue(u["id"], s)
         return jsonok({"passed_cert": True, "correct": correct, "total": total, "percent": percent,
-                       "cert_id": cert_id})
+                       "needed": needed, "cert_id": cert_id})
     db.execute("UPDATE subject_progress SET best_exam=?,best_exam_total=? WHERE user_id=? AND subject_id=?",
                (max(sp["best_exam"], correct) if sp else correct, total, u["id"], sid))
     return jsonok({"passed_cert": False, "correct": correct, "total": total, "percent": percent,
-                   "needed": 100, "message": "You need at least 100 of 125 to earn the certificate."})
+                   "needed": needed, "message": "You need at least %d of %d to earn the certificate." % (needed, total)})
 
 def issue_certificate(uid, sid, s, correct, total):
     u = db.query("SELECT * FROM users WHERE id=?", (uid,), one=True)
