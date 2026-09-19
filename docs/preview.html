@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EduLearn — platform snapshot</title>
+<style>
+/* ============================================================
+   EduLearn — modern professional SaaS design system
+   Cohesive with the public marketing site. Self-contained.
+   ============================================================ */
+:root{
+  --bg:#f6f7fb; --surface:#ffffff; --line:#e7e9f0; --line2:#d7dcec;
+  --ink:#111827; --mut:#5b6472; --soft:#f3f5fb; --soft2:#eef1fb;
+  --brand:#2e54d4; --brand-2:#4a6ef0; --brand-deep:#1b2a63;
+  --ring:rgba(46,84,212,.14);
+  --grad:linear-gradient(135deg,#2e54d4 0%,#4a6ef0 100%);
+  --ok:#1f8a5b; --ok-soft:#e9f7f0; --danger:#d63031; --danger-soft:#fdeeec;
+  --warn:#b26a00; --warn-soft:#fdf3e0;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px rgba(16,24,40,.06);
+  --shadow-lg:0 24px 60px rgba(16,24,40,.14);
+  --r:12px; --r-sm:8px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  color:var(--ink);background:var(--bg);line-height:1.6;font-size:15px;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{color:var(--ink);line-height:1.22;letter-spacing:-.01em}
+a{color:var(--brand);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1160px;margin:0 auto;padding:0 22px}
+.hide{display:none!important}
+
+/* ---------- buttons ---------- */
+.btn{border:1px solid transparent;cursor:pointer;border-radius:10px;padding:9px 15px;font-size:14px;font-weight:600;
+  display:inline-flex;align-items:center;gap:8px;justify-content:center;transition:.15s;background:var(--surface)}
+.btn-primary{background:var(--brand);color:#fff;box-shadow:0 4px 12px rgba(46,84,212,.28)}
+.btn-primary:hover{background:var(--brand-2);text-decoration:none}
+.btn-green{background:var(--ok);color:#fff}
+.btn-amber{background:var(--warn);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-ghost{background:var(--surface);color:var(--ink);border-color:var(--line2)}
+.btn-ghost:hover{background:var(--soft)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-sm{padding:5px 11px;font-size:12.5px;border-radius:8px}
+
+/* ---------- top bar ---------- */
+.topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.9);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:20px;height:60px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;color:var(--ink)}
+.brand .logo{width:30px;height:30px;border-radius:8px;background:var(--grad);color:#fff;display:grid;place-items:center;
+  font-size:13px;font-weight:700;box-shadow:0 4px 10px rgba(46,84,212,.3)}
+.navlinks{display:flex;gap:2px;margin-left:auto;align-items:center}
+.navlinks a,.navbtn{background:none;border:none;font-size:14px;color:var(--ink);padding:8px 12px;border-radius:8px;
+  cursor:pointer;font-weight:500;text-decoration:none}
+.navlinks a:hover,.navbtn:hover{background:var(--soft);text-decoration:none}
+.navlinks .btn-primary{color:#fff}
+
+/* ---------- hero (landing app shell) ---------- */
+.hero{background:
+  radial-gradient(1000px 500px at 85% -10%, rgba(74,110,240,.4), transparent 55%),
+  radial-gradient(900px 500px at -10% 0%, rgba(27,42,99,.5), transparent 55%),
+  linear-gradient(135deg,#16224f 0%,#2e54d4 60%,#4a6ef0 100%);color:#fff;padding:64px 0 70px}
+.hero h1{font-size:38px;margin:0 0 14px;color:#fff}
+.hero p.lede{font-size:17px;color:#dde6ff;max-width:660px;margin:0}
+.hero .cta-row{display:flex;gap:12px;margin-top:26px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,.35);color:#e9eeff;
+  padding:4px 11px;font-size:12px;font-weight:600;letter-spacing:.2px;border-radius:999px;background:rgba(255,255,255,.07)}
+.badge-hero{margin-top:20px;display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- sections ---------- */
+section.block{padding:52px 0}
+section.block.alt{background:#fff;border-block:1px solid var(--line)}
+h2.sec{font-size:26px;margin:0 0 6px;color:var(--ink)}
+p.sub{color:var(--mut);margin:0 0 24px;max-width:720px}
+.grid{display:grid;gap:18px}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:900px){.g3,.g4{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}}
+@media(max-width:560px){.g3,.g4,.g2{grid-template-columns:1fr}}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;box-shadow:var(--shadow)}
+.card.click{cursor:pointer;transition:.16s}
+.card.click:hover{border-color:var(--brand);box-shadow:0 10px 26px rgba(46,84,212,.10)}
+.ic{width:36px;height:36px;border-radius:9px;background:var(--soft2);color:var(--brand);display:grid;place-items:center;
+  font-size:13px;font-weight:700;margin-bottom:10px;letter-spacing:.5px}
+.icon{background:var(--soft2);color:var(--brand)}
+.grad-sub{background:var(--grad);color:#fff}
+.card h3{margin:0 0 5px;font-size:17px}
+.card p{margin:0;color:var(--mut);font-size:13.5px}
+.card .tag{display:inline-block;margin-top:10px;font-size:12px;font-weight:700;color:var(--ok)}
+
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(6,1fr);gap:0;border:1px solid var(--line);background:var(--surface);
+  border-radius:var(--r);overflow:hidden;margin-bottom:6px}
+.step{padding:18px 16px;border-right:1px solid var(--line)}
+.step:last-child{border-right:none}
+.step .num{width:26px;height:26px;border-radius:8px;background:var(--grad);color:#fff;display:grid;place-items:center;
+  font-weight:700;font-size:13px;margin-bottom:10px}
+.step b{font-size:14px;display:block;margin-bottom:4px}
+.step p{font-size:12.5px;color:var(--mut);margin:0}
+@media(max-width:900px){.steps{grid-template-columns:repeat(3,1fr)}.step{border-bottom:1px solid var(--line)}}
+@media(max-width:560px){.steps{grid-template-columns:1fr 1fr}}
+
+.footer{background:#101b38;color:#c6d2f0;padding:28px 0;margin-top:30px}
+.footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:13.5px}
+
+/* ---------- auth ---------- */
+.authcard{max-width:460px;margin:40px auto;background:var(--surface);border:1px solid var(--line);border-radius:16px;
+  padding:30px;box-shadow:var(--shadow-lg)}
+.field{margin-bottom:14px}
+.field label{display:block;font-weight:600;font-size:13px;margin-bottom:6px}
+.input,select.input,textarea.input{width:100%;padding:10px 13px;border:1px solid var(--line2);border-radius:9px;
+  font-size:14px;background:#fff;color:var(--ink);transition:.15s}
+.input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--ring)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.err{color:var(--danger);font-size:13px;min-height:18px}
+.ok{color:var(--ok);font-weight:600}
+
+/* ---------- pills / status ---------- */
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;letter-spacing:.2px}
+.pill-not{background:#eef0f5;color:#5b6472}
+.pill-prog{background:#e8efff;color:var(--brand)}
+.pill-fail{background:var(--danger-soft);color:var(--danger)}
+.pill-rev{background:var(--warn-soft);color:var(--warn)}
+.pill-done{background:var(--ok-soft);color:var(--ok)}
+.statrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
+.stat .n{font-size:26px;font-weight:800;color:var(--brand);letter-spacing:-.02em}
+.stat .l{font-size:12.5px;color:var(--mut)}
+
+/* progress bar */
+.pbar{background:#e9ecf3;height:8px;border-radius:999px;overflow:hidden}
+.pfill{height:100%;background:var(--grad);border-radius:999px;transition:width .5s}
+.pfill.blue{background:var(--grad)}
+
+/* units / lessons */
+.unitlist{display:flex;flex-direction:column;gap:12px}
+.unit{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+.unit>.head{padding:15px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;flex-wrap:wrap}
+.unit>.head .tt{font-weight:600;font-size:15.5px;flex:1;min-width:200px}
+.unit>.head .tt small{display:block;font-weight:500;color:var(--mut);font-size:12.5px}
+.lessons{background:#fbfcff;border-top:1px solid var(--line)}
+.lesson{display:flex;align-items:center;gap:12px;padding:11px 20px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .1s}
+.lesson:last-child{border-bottom:none}
+.lesson:hover{background:var(--soft)}
+.lesson .st{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font-size:12px;border:1px solid var(--line2);
+  color:var(--mut);background:#fff;flex:none;font-weight:700}
+.lesson .st.done{background:var(--ok);color:#fff;border-color:var(--ok)}
+.lesson .st.fail{background:var(--danger);color:#fff;border-color:var(--danger)}
+.lesson .st.cur{background:var(--brand);color:#fff;border-color:var(--brand)}
+.lesson .nm{flex:1;font-size:14px}
+.lesson .tl{font-size:12px;color:var(--mut)}
+
+.crumb{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--mut);margin:16px 0}
+.crumb a{color:var(--mut)}
+.crumb b{color:var(--ink)}
+
+/* learning content */
+.lessonContent{padding:8px 0}
+.lessonContent h1{font-size:24px}
+.lessonContent h2{font-size:20px;color:var(--brand-deep);border-bottom:1px solid var(--line);padding-bottom:5px;margin-top:26px}
+.lessonContent h3{color:var(--brand-deep);font-size:16px}
+.lessonContent table{border-collapse:collapse;width:100%;margin:12px 0;font-size:13.5px;background:#fff}
+.lessonContent th,td{border:1px solid var(--line);padding:7px 10px;text-align:left}
+.lessonContent th{background:var(--soft);color:var(--brand-deep)}
+.lessonContent blockquote{margin:12px 0;padding:12px 16px;border-left:4px solid var(--brand);background:var(--soft);border-radius:0 8px 8px 0}
+.lessonContent code{background:#eef1f6;padding:1px 5px;border-radius:5px}
+.lessonContent ul,.lessonContent ol{padding-left:24px}
+.lessonContent li{margin:4px 0}
+.lessonContent .note-box{background:var(--ok-soft);border-left:4px solid var(--ok);padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0}
+
+/* lesson sub-nav */
+.subtabs{display:flex;gap:2px;flex-wrap:wrap;margin:4px 0 20px;border-bottom:1px solid var(--line)}
+.subtab{background:none;border:none;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;color:var(--mut);
+  border-bottom:2px solid transparent;margin-bottom:-1px}
+.subtab:hover{color:var(--brand)}
+.subtab.on{color:var(--brand);border-bottom-color:var(--brand)}
+
+/* quiz */
+.qcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin:14px 0;box-shadow:var(--shadow)}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;margin:8px 0;
+  cursor:pointer;transition:.12s;background:#fff}
+.opt:hover{border-color:var(--brand)}
+.opt.sel{border-color:var(--brand);background:var(--soft2);box-shadow:0 0 0 3px var(--ring)}
+.opt.correct{border-color:var(--ok);background:var(--ok-soft)}
+.opt.wrong{border-color:var(--danger);background:var(--danger-soft)}
+.opt .k{font-weight:700;color:var(--mut);width:20px;flex:none}
+.reviewbox{border-left:4px solid var(--ok);background:var(--ok-soft);padding:11px 14px;border-radius:0 8px 8px 0;margin:6px 0;font-size:13.5px}
+.reviewbox.err{border-color:var(--danger);background:var(--danger-soft)}
+
+/* flashcards */
+.fcard-wrap{perspective:1200px;cursor:pointer}
+.fcard{position:relative;width:100%;height:210px;transform-style:preserve-3d;transition:transform .45s;border-radius:var(--r)}
+.fcard.flip{transform:rotateY(180deg)}
+.fcard .face{position:absolute;inset:0;backface-visibility:hidden;border-radius:var(--r);display:flex;align-items:center;
+  justify-content:center;text-align:center;padding:26px;font-size:16px;font-weight:600;border:1px solid var(--line);
+  background:#fff;box-shadow:var(--shadow)}
+.fcard .face.back{transform:rotateY(180deg);background:var(--grad);color:#fff;font-weight:500;font-size:15px}
+
+/* notifications */
+.notif{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-sm);padding:13px 16px;margin:9px 0;
+  display:flex;gap:12px;box-shadow:var(--shadow)}
+.notif.unread{border-left:4px solid var(--brand);background:#f7f9ff}
+.notif .dot{margin-left:auto;color:var(--brand);font-size:11px;font-weight:700;text-transform:uppercase}
+
+/* tables */
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+table.data{width:100%;border-collapse:collapse;font-size:13.5px}
+table.data th{background:var(--soft);color:var(--brand-deep);text-align:left;padding:10px 12px;position:sticky;top:0;font-weight:600}
+table.data td{border-top:1px solid var(--line);padding:9px 12px}
+table.data tr:hover td{background:var(--soft)}
+
+/* admin */
+.admingrid{display:grid;grid-template-columns:220px 1fr;gap:22px}
+@media(max-width:760px){.admingrid{grid-template-columns:1fr}}
+.aside{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px;align-self:start;box-shadow:var(--shadow)}
+.aside button{display:block;width:100%;text-align:left;padding:9px 12px;margin:2px 0;background:none;border:none;border-radius:var(--r-sm);
+  font-size:13.5px;cursor:pointer;color:var(--ink);font-weight:500}
+.aside button.on,.aside button:hover{background:var(--brand);color:#fff}
+
+/* misc */
+.muted{color:var(--mut)}.right{text-align:right}.center{text-align:center}
+.mt8{margin-top:8px}.mt16{margin-top:16px}.mt24{margin-top:24px}.mb8{margin-bottom:8px}
+.herotext{color:#fff}
+.gap8{display:flex;gap:8px;align-items:center}
+
+/* certificate */
+.cert-wrap{max-width:840px;margin:20px auto;background:#fff;border:2px solid var(--brand);border-radius:6px;
+  padding:46px 52px;text-align:center;position:relative;color:var(--ink)}
+.cert-wrap .gold{color:var(--brand);letter-spacing:4px;font-size:11px;font-weight:700;text-transform:uppercase}
+.cert-wrap h2{font-size:24px;color:var(--brand);margin:6px 0 2px}
+.cert-wrap .who{font-size:32px;color:var(--ink);font-weight:800;margin:12px 0;letter-spacing:.3px}
+.bigicon{font-size:44px}
+.confetti{position:relative}
+@media print{.topbar,.footer,.noprint{display:none!important}.cert-wrap{border:2px solid #000}}
+.fadein{animation:fadein .4s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---- snapshot-only chrome ---- */
+body{padding-bottom:60px}
+.snaphead{background:var(--grad);color:#fff;padding:26px 0 30px}
+.snaphead h1{color:#fff;margin:0 0 6px;font-size:26px}
+.snaphead p{margin:0;color:#dbe4ff;max-width:820px}
+.snapstats{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.snapstats span{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);border-radius:999px;
+  padding:5px 12px;font-size:12.5px;font-weight:600}
+.shotlabel{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:15px}
+.shotnum{background:var(--brand);color:#fff;width:24px;height:24px;border-radius:50%;display:inline-flex;
+  align-items:center;justify-content:center;font-size:12.5px;font-weight:700;flex:none}
+.shot{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--bg);box-shadow:var(--shadow)}
+.shot>section .wrap,.shot .hero .wrap{padding-top:18px}
+.note-box{background:var(--warn-soft);border:1px solid #f0dcb4;color:#6b4a06;border-radius:12px;
+  padding:12px 16px;margin:18px auto;max-width:1000px;font-size:13.5px}
+</style></head><body>
+<div class="snaphead"><div class="wrap">
+  <h1>EduLearn — platform snapshot</h1>
+  <p>A static, offline view of the real platform rendered from the live database. Every unit, lesson,
+  question and flashcard below is genuine content — not a mockup. The interactive version runs on the
+  preview server with logins, progress tracking and certificates.</p>
+  <div class="snapstats">
+    <span>14 subjects</span><span>776 lessons</span>
+    <span>7758 assessment questions</span><span>2702 flashcards</span>
+    <span>10 questions per lesson</span><span>80% pass · 100/125 to certify</span>
+  </div></div></div>
+<div class="note-box"><div class="wrap"><b>Note:</b> this file is a read-only snapshot for viewing.
+Buttons and links are inert here — in the running app they navigate between screens and remember progress.</div></div>
+<section class="block"><div class="wrap">
+    <div class="shotlabel"><span class="shotnum">1</span><b>The landing page</b><span class="muted">— what a new visitor sees</span></div>
+    <div class="shot"><div class="hero"><div class="wrap">
+      <div class="badge-hero"><span class="chip">Interactive digital teacher</span>
+      <span class="chip">Certificate on completion</span><span class="chip">Progress tracking</span></div>
+      <h1>Master your Grade 9–12 subjects, lesson by lesson.</h1>
+      <p class="lede">EduLearn turns your complete textbooks into an interactive classroom — study each lesson,
+      quiz yourself, revise with flashcards, and earn a professional certificate when you master a subject.</p>
+      <div class="cta-row"><button class="btn btn-primary" style="font-size:15px">Begin registration</button>
+      <button class="btn btn-ghost" style="background:#fff;color:#0f3d6b">How it works</button></div></div></div>
+      <div class="wrap" style="margin-top:26px"><h2 class="sec">Choose your grade</h2>
+      <div class="grid g3"><div class="card"><h3>Grade 9</h3><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><span class="chip">Biology · 55 lessons</span><span class="chip">Chemistry · 29 lessons</span><span class="chip">English · 54 lessons</span><span class="chip">Mathematics · 48 lessons</span><span class="chip">Physics · 53 lessons</span></div></div><div class="card"><h3>Grade 10</h3><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><span class="chip">Biology · 46 lessons</span><span class="chip">English · 70 lessons</span><span class="chip">Mathematics · 41 lessons</span><span class="chip">Physics · 57 lessons</span></div></div><div class="card"><h3>Grade 11</h3><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><span class="chip">Agriculture · 105 lessons</span><span class="chip">Biology · 58 lessons</span><span class="chip">Chemistry · 49 lessons</span><span class="chip">English · 60 lessons</span><span class="chip">Physics · 51 lessons</span></div></div></div></div></div></div></section><section class="block"><div class="wrap">
+    <div class="shotlabel"><span class="shotnum">2</span><b>A student&#x27;s dashboard</b><span class="muted">— their grade's subjects, ready to open</span></div>
+    <div class="shot"><div style="max-width:1000px;margin:0 auto">
+      <h1 style="margin:0 0 4px">Welcome back, rtyjed5</h1>
+      <p class="muted" style="margin:0 0 18px">Grade 9 student · progress is saved on every lesson you pass.</p>
+      <div class="grid g2"><div class="card"><div style="display:flex;align-items:center;gap:10px">
+          <div class="logo" style="width:34px;height:34px;font-size:13px">BI</div>
+          <div><b>Biology</b><div class="muted" style="font-size:12px">Grade 9</div></div></div>
+          <div class="pbar" style="margin:12px 0 6px"><div class="pfill" style="width:0%"></div></div>
+          <div class="muted" style="font-size:12.5px">0 / 55 lessons · <span class="pill pill-not">◌ Not started</span></div></div><div class="card"><div style="display:flex;align-items:center;gap:10px">
+          <div class="logo" style="width:34px;height:34px;font-size:13px">CH</div>
+          <div><b>Chemistry</b><div class="muted" style="font-size:12px">Grade 9</div></div></div>
+          <div class="pbar" style="margin:12px 0 6px"><div class="pfill" style="width:0%"></div></div>
+          <div class="muted" style="font-size:12.5px">0 / 29 lessons · <span class="pill pill-not">◌ Not started</span></div></div><div class="card"><div style="display:flex;align-items:center;gap:10px">
+          <div class="logo" style="width:34px;height:34px;font-size:13px">EN</div>
+          <div><b>English</b><div class="muted" style="font-size:12px">Grade 9</div></div></div>
+          <div class="pbar" style="margin:12px 0 6px"><div class="pfill" style="width:0%"></div></div>
+          <div class="muted" style="font-size:12.5px">0 / 54 lessons · <span class="pill pill-not">◌ Not started</span></div></div><div class="card"><div style="display:flex;align-items:center;gap:10px">
+          <div class="logo" style="width:34px;height:34px;font-size:13px">MA</div>
+          <div><b>Mathematics</b><div class="muted" style="font-size:12px">Grade 9</div></div></div>
+          <div class="pbar" style="margin:12px 0 6px"><div class="pfill" style="width:0%"></div></div>
+          <div class="muted" style="font-size:12.5px">0 / 48 lessons · <span class="pill pill-not">◌ Not started</span></div></div><div class="card"><div style="display:flex;align-items:center;gap:10px">
+          <div class="logo" style="width:34px;height:34px;font-size:13px">PH</div>
+          <div><b>Physics</b><div class="muted" style="font-size:12px">Grade 9</div></div></div>
+          <div class="pbar" style="margin:12px 0 6px"><div class="pfill" style="width:0%"></div></div>
+          <div class="muted" style="font-size:12.5px">0 / 53 lessons · <span class="pill pill-not">◌ Not started</span></div></div></div></div></div></div></section><section class="block"><div class="wrap">
+    <div class="shotlabel"><span class="shotnum">3</span><b>Inside a subject</b><span class="muted">— Chemistry Grade 9 — every unit, every lesson</span></div>
+    <div class="shot"><div style="max-width:1000px;margin:0 auto">
+      <div class="crumb"><a href="#">Home</a> › <a href="#">Dashboard</a> › <b>Chemistry</b></div>
+      <h1 style="margin:0">Grade 9 Chemistry</h1>
+      <p class="muted">Chemistry lesson-by-lesson with quizzes, flashcards, and certification.</p>
+      <button class="btn btn-primary" style="margin:14px 0">Start learning — 1.1 Definition and Scope of Chemistry →</button><div class="unit"><div class="head"><span class="pill pill-prog">0/6</span>
+          <div class="tt">Unit 1 — Chemistry and Its Importance</div>
+          <div style="width:150px"><div class="pbar"><div class="pfill" style="width:0%"></div></div></div>
+          <button class="btn btn-ghost btn-sm">⬇ Unit PDF</button></div>
+          <div class="lessons"><div class="lesson"><div class="st ">1</div><div class="nm">Lesson 1. 1.1 Definition and Scope of Chemistry</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">2</div><div class="nm">Lesson 2. 1.2 The Relationship Between Chemistry and Other Natural Sciences</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">3</div><div class="nm">Lesson 3. 1.3 The Role Chemistry Plays in Production and in the Society</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">4</div><div class="nm">Lesson 4. 1.4 Some Common Chemical Industries in Ethiopia</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">5</div><div class="nm">Lesson 5. 📚 Unit 1 Summary (Key Facts)</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">6</div><div class="nm">Lesson 6. ⚡ Quick Revision Box (Unit 1)</div><span class="pill pill-not">◌ Not started</span></div></div></div><div class="unit"><div class="head"><span class="pill pill-prog">0/4</span>
+          <div class="tt">Unit 2 — Measurements and Scientific Methods</div>
+          <div style="width:150px"><div class="pbar"><div class="pfill" style="width:0%"></div></div></div>
+          <button class="btn btn-ghost btn-sm">⬇ Unit PDF</button></div>
+          <div class="lessons"><div class="lesson"><div class="st ">1</div><div class="nm">Lesson 1. 2.1 Measurements and Units in Chemistry</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">2</div><div class="nm">Lesson 2. 2.2 Chemistry as an Experimental Science</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">3</div><div class="nm">Lesson 3. 📚 Unit 2 Summary (Key Facts)</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">4</div><div class="nm">Lesson 4. ⚡ Quick Revision Box (Unit 2)</div><span class="pill pill-not">◌ Not started</span></div></div></div><div class="unit"><div class="head"><span class="pill pill-prog">0/7</span>
+          <div class="tt">Unit 3 — Structure of the Atom</div>
+          <div style="width:150px"><div class="pbar"><div class="pfill" style="width:0%"></div></div></div>
+          <button class="btn btn-ghost btn-sm">⬇ Unit PDF</button></div>
+          <div class="lessons"><div class="lesson"><div class="st ">1</div><div class="nm">Lesson 1. 3.1 Historical Development of the Atomic Theories of Matter</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">2</div><div class="nm">Lesson 2. 3.2 Fundamental Laws of Chemical Reactions</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">3</div><div class="nm">Lesson 3. 3.3 Atomic Theory</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">4</div><div class="nm">Lesson 4. 3.4 Discoveries of the Fundamental Subatomic Particles and the Atomic Nucleus</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">5</div><div class="nm">Lesson 5. 3.5 Composition of an Atom and the Isotopes</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">6</div><div class="nm">Lesson 6. 📚 Unit 3 Summary (Key Facts)</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">7</div><div class="nm">Lesson 7. ⚡ Quick Revision Box (Unit 3)</div><span class="pill pill-not">◌ Not started</span></div></div></div><div class="unit"><div class="head"><span class="pill pill-prog">0/6</span>
+          <div class="tt">Unit 4 — Periodic Classification of Elements</div>
+          <div style="width:150px"><div class="pbar"><div class="pfill" style="width:0%"></div></div></div>
+          <button class="btn btn-ghost btn-sm">⬇ Unit PDF</button></div>
+          <div class="lessons"><div class="lesson"><div class="st ">1</div><div class="nm">Lesson 1. 4.1 Historical Development of Periodic Classification of the Elements</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">2</div><div class="nm">Lesson 2. 4.2 Mendeleev&#x27;s Classification of the Elements</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">3</div><div class="nm">Lesson 3. 4.3 The Modern Periodic Table</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">4</div><div class="nm">Lesson 4. 4.4 The Major Trends in the Periodic Table</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">5</div><div class="nm">Lesson 5. 📚 Unit 4 Summary (Key Facts)</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">6</div><div class="nm">Lesson 6. ⚡ Quick Revision Box (Unit 4)</div><span class="pill pill-not">◌ Not started</span></div></div></div><div class="unit"><div class="head"><span class="pill pill-prog">0/6</span>
+          <div class="tt">Unit 5 — Chemical Bonding</div>
+          <div style="width:150px"><div class="pbar"><div class="pfill" style="width:0%"></div></div></div>
+          <button class="btn btn-ghost btn-sm">⬇ Unit PDF</button></div>
+          <div class="lessons"><div class="lesson"><div class="st ">1</div><div class="nm">Lesson 1. 5.1 Chemical Bonding</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">2</div><div class="nm">Lesson 2. 5.2 Ionic Bonding</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">3</div><div class="nm">Lesson 3. 5.3 Covalent Bonding</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">4</div><div class="nm">Lesson 4. 5.4 Metallic Bonding</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">5</div><div class="nm">Lesson 5. 📚 Unit 5 Summary (Key Facts)</div><span class="pill pill-not">◌ Not started</span></div><div class="lesson"><div class="st ">6</div><div class="nm">Lesson 6. ⚡ Quick Revision Box (Unit 5)</div><span class="pill pill-not">◌ Not started</span></div></div></div></div></div></div></section><section class="block"><div class="wrap">
+    <div class="shotlabel"><span class="shotnum">4</span><b>A lesson</b><span class="muted">— 1.1 Definition and Scope of Chemistry — the real lesson text from the database</span></div>
+    <div class="shot"><div style="max-width:920px;margin:0 auto">
+    <div class="crumb"><a href="#">Home</a> › <a href="#">Dashboard</a> ›
+      <a href="#">Chemistry</a> › <b>Unit 1 — Chemistry and Its Importance</b></div>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <span class="muted" style="font-size:12px">UNIT 1 · LESSON 1 OF 6 · GRADE 9 CHEMISTRY</span>
+        <h1 style="margin:2px 0 0;font-size:26px">1.1 Definition and Scope of Chemistry</h1></div>
+      <span class="pill pill-not">◌ Not started</span></div>
+    <div class="pbar" style="margin:8px 0 14px"><div class="pfill blue" style="width:0%"></div></div>
+    <div class="subtabs"><button class="subtab on">Learn</button><button class="subtab ">Flashcards</button><button class="subtab ">Assessment</button></div>
+    <div class="lessonContent"><h3>1.1.1 Definition of Chemistry</h3>
+<p><strong>Chemistry</strong> is the science that deals with the <strong>properties, composition, and structure</strong> of substances (elements and compounds), the <strong>transformations</strong> they undergo, and the <strong>energy</strong> that is released or absorbed during these processes.</p>
+<p>Key terms:
+- <strong>Substance:</strong> a particular kind of matter with uniform properties (e.g., gold, silver, water, soap, table salt).
+- <strong>Matter:</strong> a physical substance that occupies space and possesses rest mass (e.g., book, pencil, television).
+- <strong>Property:</strong> the attribute, quality, or characteristic by which a substance is distinguished from others.
+- <strong>Composition:</strong> the nature of something's ingredients/constituents; how a whole or mixture is made up (e.g., table salt = sodium + chlorine).
+- <strong>Structure:</strong> the arrangement and relationships between the parts of something complex (e.g., a building's parts arranged in order).
+- <strong>Transformation:</strong> a marked change in form, nature, or appearance, accompanied by energy changes.</p>
+<h3>1.1.2 Scope of Chemistry</h3>
+<p>The study of modern chemistry has <strong>five main disciplines</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Branch</th>
+<th>What it studies</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Physical chemistry</strong></td>
+<td>Macroscopic and atomic properties; rates of reactions, energy transfers, molecular structure.</td>
+</tr>
+<tr>
+<td><strong>Organic chemistry</strong></td>
+<td>Substances containing <strong>carbon</strong> (over 20 million carbon-based chemicals).</td>
+</tr>
+<tr>
+<td><strong>Inorganic chemistry</strong></td>
+<td>Substances <strong>not primarily based on carbon</strong> (rocks, minerals; energy &amp; IT materials).</td>
+</tr>
+<tr>
+<td><strong>Analytical chemistry</strong></td>
+<td>The <strong>composition</strong> of matter — separating, identifying, and quantifying components.</td>
+</tr>
+<tr>
+<td><strong>Biochemistry</strong></td>
+<td>Chemical processes occurring in <strong>living things</strong> (cellular processes, disease states).</td>
+</tr>
+</tbody>
+</table>
+<p>The scope of chemistry extends to <strong>agriculture, medicine, food production, and building construction</strong>, explaining the natural world, preparing people for careers, and producing informed citizens. Chemistry can also produce dangerous substances (e.g., chlorofluorocarbons, oxides of nitrogen, carbon, and sulphur) that harm life and the environment.</p>
+<blockquote>
+<p><strong>✍️ Must-know:</strong> The five branches of chemistry are physical, organic, inorganic, analytical, and biochemistry. Chemistry = central science.</p>
+</blockquote>
+<hr /></div>
+    <div style="display:flex;justify-content:space-between;margin-top:22px">
+      <button class="btn btn-ghost">← Previous</button>
+      <button class="btn btn-primary">Next lesson →</button></div></div></div></div></section><section class="block"><div class="wrap">
+    <div class="shotlabel"><span class="shotnum">5</span><b>Flashcards</b><span class="muted">— generated from that lesson's own terms</span></div>
+    <div class="shot"><div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px'><div class="card" style="min-height:150px;display:flex;flex-direction:column;justify-content:center">
+          <div style="font-weight:700;color:var(--brand-deep);text-align:center">Chemistry</div>
+          <div class="muted" style="margin-top:10px;font-size:13.5px;text-align:center">the science that deals with the properties, composition, and structure of substances (elements and compounds), the transformations they undergo, and the energy that is released or absorbed during these processes.</div></div><div class="card" style="min-height:150px;display:flex;flex-direction:column;justify-content:center">
+          <div style="font-weight:700;color:var(--brand-deep);text-align:center">Substance</div>
+          <div class="muted" style="margin-top:10px;font-size:13.5px;text-align:center">a particular kind of matter with uniform properties (e.g., gold, silver, water, soap, table salt).</div></div><div class="card" style="min-height:150px;display:flex;flex-direction:column;justify-content:center">
+          <div style="font-weight:700;color:var(--brand-deep);text-align:center">Matter</div>
+          <div class="muted" style="margin-top:10px;font-size:13.5px;text-align:center">a physical substance that occupies space and possesses rest mass (e.g., book, pencil, television).</div></div><div class="card" style="min-height:150px;display:flex;flex-direction:column;justify-content:center">
+          <div style="font-weight:700;color:var(--brand-deep);text-align:center">Property</div>
+          <div class="muted" style="margin-top:10px;font-size:13.5px;text-align:center">the attribute, quality, or characteristic by which a substance is distinguished from others.</div></div></div></div></div></section><section class="block"><div class="wrap">
+    <div class="shotlabel"><span class="shotnum">6</span><b>The assessment</b><span class="muted">— 10 questions for this lesson, 80% to pass, every one explained</span></div>
+    <div class="shot"><div style='max-width:820px;margin:0 auto'><div class='card'><b>Assessment — 10 questions, 80% to pass</b><p class='muted' style='margin:6px 0 0'>Generated from this lesson's own text. Below, each question is shown with its correct option marked ✓ and the explanation a student sees when they get it wrong.</p></div><div class="qcard">
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="pill pill-prog">Question 1 of 10</span>
+        <span class="muted" style="font-size:12px">1.1 Definition and Scope of Chemistry · Easy</span></div>
+      <h3 style="margin:10px 0 8px">True or False: Substance: a particular kind of matter with uniform properties (e.g., gold, silver, water, soap, table salt).</h3>
+      <div class="opt correct"><span class="k">A</span><div>True</div>&nbsp;✓</div><div class="opt "><span class="k">B</span><div>False</div></div>
+      <div class="reviewbox"><b>Why:</b> Correct — the lesson states: Substance: a particular kind of matter with uniform properties (e.g., gold, silver, water, soap, table salt).</div></div><div class="qcard">
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="pill pill-prog">Question 2 of 10</span>
+        <span class="muted" style="font-size:12px">1.1 Definition and Scope of Chemistry · Easy</span></div>
+      <h3 style="margin:10px 0 8px">True or False: Matter: a physical substance that occupies space and possesses rest mass (e.g., book, pencil, television).</h3>
+      <div class="opt correct"><span class="k">A</span><div>True</div>&nbsp;✓</div><div class="opt "><span class="k">B</span><div>False</div></div>
+      <div class="reviewbox"><b>Why:</b> Correct — the lesson states: Matter: a physical substance that occupies space and possesses rest mass (e.g., book, pencil, television).</div></div><div class="qcard">
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="pill pill-prog">Question 3 of 10</span>
+        <span class="muted" style="font-size:12px">1.1 Definition and Scope of Chemistry · Medium</span></div>
+      <h3 style="margin:10px 0 8px">True or False: Property: the attribute, quality, or characteristic by which a Chemistry is distinguished from others.</h3>
+      <div class="opt "><span class="k">A</span><div>True</div></div><div class="opt correct"><span class="k">B</span><div>False</div>&nbsp;✓</div>
+      <div class="reviewbox"><b>Why:</b> False — the lesson says “Property: the attribute, quality, or characteristic by which a substance is distinguished from others.”, not “Chemistry”.</div></div><div class="qcard">
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="pill pill-prog">Question 4 of 10</span>
+        <span class="muted" style="font-size:12px">Chemistry · Medium</span></div>
+      <h3 style="margin:10px 0 8px">Which of the following best describes Chemistry?</h3>
+      <div class="opt "><span class="k">A</span><div>a physical substance that occupies space and possesses rest mass (e.g., book, pencil, television).</div></div><div class="opt "><span class="k">B</span><div>the attribute, quality, or characteristic by which a substance is distinguished from others.</div></div><div class="opt "><span class="k">C</span><div>a particular kind of matter with uniform properties (e.g., gold, silver, water, soap, table salt).</div></div><div class="opt correct"><span class="k">D</span><div>the science that deals with the properties, composition, and structure of substances (elements and compounds), the transformations they undergo, and…</div>&nbsp;✓</div>
+      <div class="reviewbox"><b>Why:</b> Chemistry — the science that deals with the properties, composition, and structure of substances (elements and compounds), the transformations they undergo, and the energy that is released or absorbed during these processes.</div></div><div class="qcard">
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="pill pill-prog">Question 5 of 10</span>
+        <span class="muted" style="font-size:12px">Substance · Medium</span></div>
+      <h3 style="margin:10px 0 8px">Which of the following best describes Substance?</h3>
+      <div class="opt "><span class="k">A</span><div>the attribute, quality, or characteristic by which a substance is distinguished from others.</div></div><div class="opt "><span class="k">B</span><div>a physical substance that occupies space and possesses rest mass (e.g., book, pencil, television).</div></div><div class="opt "><span class="k">C</span><div>the science that deals with the properties, composition, and structure of substances (elements and compounds), the transformations they undergo, and…</div></div><div class="opt correct"><span class="k">D</span><div>a particular kind of matter with uniform properties (e.g., gold, silver, water, soap, table salt).</div>&nbsp;✓</div>
+      <div class="reviewbox"><b>Why:</b> Substance — a particular kind of matter with uniform properties (e.g., gold, silver, water, soap, table salt).</div></div><div class="qcard">
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="pill pill-prog">Question 6 of 10</span>
+        <span class="muted" style="font-size:12px">Matter · Medium</span></div>
+      <h3 style="margin:10px 0 8px">Which of the following best describes Matter?</h3>
+      <div class="opt "><span class="k">A</span><div>the attribute, quality, or characteristic by which a substance is distinguished from others.</div></div><div class="opt "><span class="k">B</span><div>the science that deals with the properties, composition, and structure of substances (elements and compounds), the transformations they undergo, and…</div></div><div class="opt correct"><span class="k">C</span><div>a physical substance that occupies space and possesses rest mass (e.g., book, pencil, television).</div>&nbsp;✓</div><div class="opt "><span class="k">D</span><div>a particular kind of matter with uniform properties (e.g., gold, silver, water, soap, table salt).</div></div>
+      <div class="reviewbox"><b>Why:</b> Matter — a physical substance that occupies space and possesses rest mass (e.g., book, pencil, television).</div></div><div class="qcard">
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="pill pill-prog">Question 7 of 10</span>
+        <span class="muted" style="font-size:12px">Substance · Easy</span></div>
+      <h3 style="margin:10px 0 8px">Complete the statement from the lesson: “______: a particular kind of matter with uniform properties (e.g., gold, silver, water, soap, table salt).”</h3>
+      <div class="opt "><span class="k">A</span><div>Property</div></div><div class="opt "><span class="k">B</span><div>Chemistry</div></div><div class="opt correct"><span class="k">C</span><div>Substance</div>&nbsp;✓</div><div class="opt "><span class="k">D</span><div>Matter</div></div>
+      <div class="reviewbox"><b>Why:</b> The lesson states: Substance: a particular kind of matter with uniform properties (e.g., gold, silver, water, soap, table salt).</div></div><div class="qcard">
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="pill pill-prog">Question 8 of 10</span>
+        <span class="muted" style="font-size:12px">Substance · Easy</span></div>
+      <h3 style="margin:10px 0 8px">Complete the statement from the lesson: “Matter: a physical ______ that occupies space and possesses rest mass (e.g., book, pencil, television).”</h3>
+      <div class="opt "><span class="k">A</span><div>Matter</div></div><div class="opt correct"><span class="k">B</span><div>Substance</div>&nbsp;✓</div><div class="opt "><span class="k">C</span><div>Chemistry</div></div><div class="opt "><span class="k">D</span><div>Property</div></div>
+      <div class="reviewbox"><b>Why:</b> The lesson states: Matter: a physical substance that occupies space and possesses rest mass (e.g., book, pencil, television).</div></div><div class="qcard">
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="pill pill-prog">Question 9 of 10</span>
+        <span class="muted" style="font-size:12px">Chemistry · Medium</span></div>
+      <h3 style="margin:10px 0 8px">Which term matches this description? “the science that deals with the properties, composition, and structure of substances (elements and compounds), the transformations they undergo, and the energy that is released or absorbed…”</h3>
+      <div class="opt correct"><span class="k">A</span><div>Chemistry</div>&nbsp;✓</div><div class="opt "><span class="k">B</span><div>Substance</div></div><div class="opt "><span class="k">C</span><div>Property</div></div><div class="opt "><span class="k">D</span><div>Matter</div></div>
+      <div class="reviewbox"><b>Why:</b> That statement describes Chemistry.</div></div><div class="qcard">
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="pill pill-prog">Question 10 of 10</span>
+        <span class="muted" style="font-size:12px">1.1 Definition and Scope of Chemistry · Medium</span></div>
+      <h3 style="margin:10px 0 8px">According to this lesson, which statement is correct?</h3>
+      <div class="opt correct"><span class="k">A</span><div>Substance: a particular kind of matter with uniform properties (e.g., gold, silver, water, soap, table salt).</div>&nbsp;✓</div><div class="opt "><span class="k">B</span><div>Chemistry: a particular kind of matter with uniform properties (e.g., gold, silver, water, soap, table salt).</div></div><div class="opt "><span class="k">C</span><div>Matter: a particular kind of matter with uniform properties (e.g., gold, silver, water, soap, table salt).</div></div><div class="opt "><span class="k">D</span><div>Property: a particular kind of matter with uniform properties (e.g., gold, silver, water, soap, table salt).</div></div>
+      <div class="reviewbox"><b>Why:</b> The lesson states: Substance: a particular kind of matter with uniform properties (e.g., gold, silver, water, soap, table salt).. The other options change a value or term from the lesson.</div></div></div></div></div></section>
+<div class="footer"><div class="wrap"><div><b style="color:#fff">EduLearn</b><br>Grade 9–12 interactive digital learning platform.</div>
+<div class="muted" style="color:#90a9c2">Learn → Practice → Test → Understand mistakes → Retake → Progress → Complete → Get Certified</div></div></div>
+</body></html>
