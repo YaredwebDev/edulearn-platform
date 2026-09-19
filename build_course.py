@@ -34,12 +34,30 @@ def backup_db():
     return dest
 
 
+SKIP_DIRS = {".git", "docs", "__pycache__", ".venv", "node_modules", ".cache", "static", ".arena"}
+
+
+def looks_like_notes(name):
+    """True only for real study-notes files, so running against the whole repo is safe.
+
+    Accepts names that carry a subject word and/or a grade, or say 'notes'.
+    """
+    low = name.lower()
+    if any(k in low for k in ("notes", "structured", "textbook", "handout", "summary")):
+        return True
+    subject = any(k in low for k in ("bio", "chem", "phys", "math", "english", "engl",
+                                     "agric", "geo", "hist", "civic", "it"))
+    grade = bool(__import__("re").search(r"(grade|gr)\s*[_\-]?\d", low))
+    return subject and grade
+
+
 def collect_files(folder):
-    """Every notes file in the folder (also descends one level for zipped exports)."""
+    """Notes files in the folder, searched recursively but never picking up the app itself."""
     found = []
-    for root, _dirs, files in os.walk(folder):
+    for root, dirs, files in os.walk(folder):
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith(".")]
         for f in sorted(files):
-            if f.lower().endswith(EXTS) and not f.startswith("."):
+            if f.lower().endswith(EXTS) and not f.startswith(".") and looks_like_notes(f):
                 found.append(os.path.join(root, f))
     return found
 
