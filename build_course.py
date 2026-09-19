@@ -21,7 +21,7 @@ import argparse, os, shutil, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import db  # noqa: E402
 
-EXTS = (".html", ".htm", ".md", ".txt")
+EXTS = (".html", ".htm", ".md", ".txt", ".zip", ".docx", ".pdf")
 
 
 def backup_db():

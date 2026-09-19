@@ -296,6 +296,51 @@ def parse_html(text, fallback_title=""):
     return _renumber(out)
 
 
+def parse_markdown(text, fallback_title=""):
+    """Markdown / plain-text notes -> same structure as the HTML parser."""
+    try:
+        import markdown as mdlib
+        html = mdlib.markdown(text or "", extensions=["tables", "fenced_code", "sane_lists"])
+    except Exception:
+        html = "\n".join(
+            "<h%d>%s</h%d>" % (len(m.group(1)), m.group(2), len(m.group(1)))
+            if (m := re.match(r"^(#{1,6})\s+(.*)$", line)) else line
+            for line in (text or "").split("\n"))
+    return parse_html(html, fallback_title)
+
+
+def audit(units):
+    """Quality checks on a parsed document: returns a list of human-readable issues."""
+    issues = []
+    seen_titles = {}
+    for u in units:
+        if not u["lessons"]:
+            issues.append("Unit %d has no lessons: %s" % (u["number"], u["title"][:60]))
+        for l in u["lessons"]:
+            body = strip_tags(l["body_html"] or l["body_md"] or "")
+            if len(body) < 40:
+                issues.append("thin lesson (u%d l%d, %d chars): %s"
+                              % (u["number"], l["number"], len(body), l["title"][:60]))
+            key = l["title"].strip().lower()
+            if key in seen_titles:
+                issues.append("duplicate lesson title: %s (units %d and %d)"
+                              % (l["title"][:60], seen_titles[key], u["number"]))
+            seen_titles[key] = u["number"]
+    return issues
+
+
+def print_tree(units, max_body=0):
+    total = 0
+    for u in units:
+        title = re.sub(r"^\s*unit\s*\d+\s*[—\-–:]\s*", "", u["title"], flags=re.I).strip() or u["title"]
+        print("  Unit %d — %s   (%d lessons)" % (u["number"], title[:70], len(u["lessons"])))
+        for l in u["lessons"]:
+            total += 1
+            body = strip_tags(l["body_html"] or l["body_md"] or "")
+            print("      %2d. %-64s %5d chars" % (l["number"], l["title"][:64], len(body)))
+    print("  TOTAL: %d units / %d lessons" % (len(units), total))
+
+
 def strip_tags(html_text):
     return re.sub(r"\s+", " ", TAG_RX.sub(" ", html_text or "")).strip()
 
@@ -324,15 +369,110 @@ def subject_row(grade, code, name):
     return sid
 
 
+# --------------------------------------------------------------- file readers
+def _docx_to_html(path):
+    """Word document -> HTML (needs python-docx; skipped gracefully when absent)."""
+    try:
+        import docx  # python-docx
+    except Exception:
+        raise RuntimeError("python-docx is not installed (pip install python-docx)")
+    d = docx.Document(path)
+    out = []
+    for para in d.paragraphs:
+        txt = (para.text or "").strip()
+        if not txt:
+            continue
+        style = (para.style.name or "").lower()
+        m = re.match(r"heading\s*(\d+)", style)
+        if m:
+            lvl = min(6, max(1, int(m.group(1))))
+            out.append("<h%d>%s</h%d>" % (lvl, htmllib.escape(txt), lvl))
+        elif style.startswith("list"):
+            out.append("<li>%s</li>" % htmllib.escape(txt))
+        else:
+            out.append("<p>%s</p>" % htmllib.escape(txt))
+    for table in d.tables:
+        rows = ["<tr>" + "".join("<td>%s</td>" % htmllib.escape(c.text.strip()) for c in r.cells) + "</tr>"
+                for r in table.rows]
+        out.append("<table>%s</table>" % "".join(rows))
+    return "\n".join(out)
+
+
+def _pdf_to_text(path):
+    """PDF -> text (needs pypdf; skipped gracefully when absent)."""
+    try:
+        from pypdf import PdfReader
+    except Exception:
+        raise RuntimeError("pypdf is not installed (pip install pypdf)")
+    reader = PdfReader(path)
+    pages = []
+    for page in reader.pages:
+        pages.append(page.extract_text() or "")
+    return "\n\n".join(pages)
+
+
+def read_documents(path):
+    """Return [(name, text, kind)] for a notes file (or every file inside a zip).
+
+    kind is 'html' or 'md' so the parser can treat the text the right way.
+    """
+    low = path.lower()
+    if low.endswith(".zip"):
+        import zipfile, tempfile
+        docs = []
+        with zipfile.ZipFile(path) as z:
+            tmp = tempfile.mkdtemp(prefix="notes_zip_")
+            for info in z.infolist():
+                if info.is_dir() or info.filename.startswith("__MACOSX"):
+                    continue
+                inner = info.filename
+                if inner.lower().endswith((".html", ".htm", ".md", ".txt", ".docx", ".pdf")):
+                    z.extract(info, tmp)
+                    for name, text, kind in read_documents(os.path.join(tmp, inner)):
+                        docs.append((os.path.basename(inner), text, kind))
+        return docs
+    if low.endswith((".html", ".htm")):
+        with open(path, encoding="utf-8", errors="ignore") as fh:
+            return [(os.path.basename(path), fh.read(), "html")]
+    if low.endswith(".docx"):
+        return [(os.path.basename(path), _docx_to_html(path), "html")]
+    if low.endswith(".pdf"):
+        return [(os.path.basename(path), _pdf_to_text(path), "md")]
+    with open(path, encoding="utf-8", errors="ignore") as fh:
+        return [(os.path.basename(path), fh.read(), "md")]
+
+
 def import_document(path, replace=True, dry=False, verbose=True):
     """Import one structured notes file. Returns a summary dict."""
+    base = os.path.basename(path)
+    try:
+        docs = read_documents(path)
+    except Exception as e:
+        return {"file": base, "ok": False, "error": str(e)}
+    # a zip may hold several files - import each with its own name
+    if len(docs) > 1:
+        results = []
+        for name_in, text_in, kind in docs:
+            sub = os.path.join(os.path.dirname(path), name_in)
+            results.append(_import_text(sub, text_in, kind, replace=replace, dry=dry, verbose=verbose))
+        merged = {"file": base, "ok": all(r.get("ok") for r in results),
+                  "units": sum(r.get("units", 0) for r in results),
+                  "lessons": sum(r.get("lessons", 0) for r in results),
+                  "parts": len(results)}
+        if verbose:
+            print("  %-46s -> %d file(s) inside: %d units / %d lessons"
+                  % (base, len(results), merged["units"], merged["lessons"]))
+        return merged
+    name_in, text, kind = docs[0]
+    return _import_text(path, text, kind, replace=replace, dry=dry, verbose=verbose)
+
+
+def _import_text(path, text, kind="html", replace=True, dry=False, verbose=True):
     grade, code, name = guess_subject(path)
     base = os.path.basename(path)
     if not (grade and code):
         return {"file": base, "ok": False, "error": "could not detect grade/subject from name"}
-    with open(path, encoding="utf-8", errors="ignore") as fh:
-        text = fh.read()
-    units = parse_html(text, fallback_title=name)
+    units = parse_html(text, fallback_title=name) if kind == "html" else parse_markdown(text)
     n_lessons = sum(len(u["lessons"]) for u in units)
     info = {"file": base, "grade": grade, "subject": name, "units": len(units),
             "lessons": n_lessons, "ok": True, "replaced": 0}
@@ -375,7 +515,8 @@ def import_document(path, replace=True, dry=False, verbose=True):
 
 
 def import_folder(folder, only=None, replace=True, dry=False):
-    files = sorted(f for f in os.listdir(folder) if f.lower().endswith((".html", ".htm")))
+    files = sorted(f for f in os.listdir(folder)
+                   if f.lower().endswith((".html", ".htm", ".md", ".txt", ".zip", ".docx", ".pdf")))
     if not files:
         print("No .html files found in", folder)
         return []
@@ -395,9 +536,35 @@ def main():
     ap.add_argument("--only", default="", help="comma separated grades to import, e.g. 9,10")
     ap.add_argument("--keep", action="store_true", help="merge instead of replacing existing subject content")
     ap.add_argument("--dry", action="store_true")
+    ap.add_argument("--preview", action="store_true",
+                    help="show the full unit/lesson breakdown and quality checks, write nothing")
     args = ap.parse_args()
     db.init_db()
     only = [int(x) for x in re.findall(r"\d+", args.only)] or None
+
+    if args.preview:                      # breakdown preview, nothing is written
+        files = sorted(f for f in os.listdir(args.notes)
+                       if f.lower().endswith((".html", ".htm", ".md", ".txt", ".zip", ".docx", ".pdf")))
+        for f in files:
+            path = os.path.join(args.notes, f)
+            g, _c, n = guess_subject(path)
+            if only and g not in only:
+                continue
+            print("\n" + "=" * 88)
+            print("%s   [grade %s · %s]" % (f, g or "?", n or "?"))
+            print("=" * 88)
+            try:
+                for name_in, text, kind in read_documents(path):
+                    units = parse_html(text, fallback_title=n) if kind == "html" else parse_markdown(text, n)
+                    if len(files) > 1 or True:
+                        pass
+                    print_tree(units)
+                    for issue in audit(units):
+                        print("   ⚠ ", issue)
+            except Exception as e:
+                print("   !! could not read:", e)
+        return
+
     print("Importing notes from", args.notes, "(replace)" if not args.keep else "(merge)")
     res = import_folder(args.notes, only=only, replace=not args.keep, dry=args.dry)
     bad = [r for r in res if not r.get("ok")]
