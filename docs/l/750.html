@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4.9 Combination of Resistors · EduLearn</title>
+<meta name="description" content="">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<script>try{const m=document.cookie.match(/el_theme=([a-z]+)/);if(m&&m[1]==='dark')document.documentElement.dataset.theme='dark';}catch(e){}</script>
+</head><body>
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="../index.html" style="color:inherit;text-decoration:none"><div class="logo">EL</div>EduLearn</a>
+  <nav class="navlinks">
+    <a href="../index.html">Home</a>
+    <a href="javascript:void(0)" onclick="EL.toggleTheme()">Theme</a>
+  </nav>
+</div></header>
+<main class="wrap" style="padding-bottom:70px">
+<div class="crumb"><a href="../index.html">Home</a> › <a href="../s/14.html">Physics</a> › <b>Unit 4 — Static and Current Electricity</b></div>
+<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+  <div style="flex:1;min-width:200px">
+    <span class="muted" style="font-size:12px">UNIT 4 · LESSON 9 OF 14 · GRADE 10 PHYSICS</span>
+    <h1 style="margin:2px 0 0;font-size:24px">4.9 Combination of Resistors</h1>
+  </div>
+  <span class="pill pill-not" id="statuspill" data-lstatus="750">◌ Not started</span>
+</div>
+<div class="pbar" style="margin:8px 0 14px"><div class="pfill blue" style="width:57%"></div></div>
+<div class="subtabs"><button class="subtab on" data-tab="learn">Learn</button><button class="subtab " data-tab="flash">Flashcards (5)</button><button class="subtab " data-tab="quiz">Assessment (10 Q)</button></div>
+<div id="panel-learn" class="tabpanel"><div class="lessonContent"><p><strong>Resistors in Series</strong> (single path):
+- Same current through each resistor: <strong>I = I₁ = I₂ = I₃ = ...</strong>
+- Voltages add: <strong>V = V₁ + V₂ + V₃ + ...</strong>
+- Equivalent resistance: <strong>R_eq = R₁ + R₂ + R₃ + ...</strong> (greater than any individual resistance).</p>
+<p><strong>Resistors in Parallel</strong> (multiple paths):
+- Same voltage across each: <strong>V = V₁ = V₂ = V₃ = ...</strong>
+- Currents add: <strong>I = I₁ + I₂ + I₃ + ...</strong>
+- Equivalent resistance: <strong>1/R_eq = 1/R₁ + 1/R₂ + 1/R₃ + ...</strong> (less than the smallest resistance).</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Series</th>
+<th>Parallel</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Current</td>
+<td>I same in all</td>
+<td>I = I₁+I₂+I₃</td>
+</tr>
+<tr>
+<td>Voltage</td>
+<td>V = V₁+V₂+V₃</td>
+<td>V same in all</td>
+</tr>
+<tr>
+<td>Equivalent R</td>
+<td>R_eq = R₁+R₂+R₃</td>
+<td>1/R_eq = 1/R₁+1/R₂+1/R₃</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Analysis procedure for series-parallel circuits:</strong> start from the part farthest from the source, reduce to equivalent resistances, find total current, then expand back in reverse order.</p>
+<blockquote>
+<p><strong>Example 4.8 (series):</strong> R₁=12, R₂=3, R₃=4, R₄=5 Ω, V=12 V. R_eq = 24 Ω; I = 12/24 = 0.50 A.</p>
+<p><strong>Example 4.9 (parallel):</strong> R₁=12, R₂=12, R₃=6 Ω, V=12 V. 1/R_eq = 1/12+1/12+1/6 = 1/3 → R_eq = 3.0 Ω. I = 12/3 = 4.0 A. I₁=1.0, I₂=1.0, I₃=2.0 A.</p>
+<p><strong>Example 4.10 (series-parallel):</strong> 4 Ω in series with (5 Ω ∥ 9 Ω). R_parallel = 3.21 Ω; R_eq = 7.21 Ω; I = 6/7.21 = 0.830 A.</p>
+<p><strong>✍️ Must-know:</strong> Series: R_eq = sum (adds up, current same). Parallel: 1/R_eq = sum of reciprocals (voltage same, R_eq smaller).</p>
+</blockquote>
+<hr /></div>
+  <div class="card mt16"><b>Summary</b><p class="muted">Read the lesson, memorise the key terms with the Flashcards tab,
+  then take the assessment — 80% passes the lesson.</p></div></div>
+<div id="panel-flash" class="tabpanel hide"><div class="fcard-wrap" onclick="EL.flip()"><div class="fcard" id="fc"><div class="face" id="fcf">Same current through each res</div><div class="face back" id="fcb">is tor: I = I₁ = I₂ = I₃ = ...</div></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px"><button class="btn btn-ghost" onclick="EL.fcPrev()">← Prev</button><span class="muted" id="fci">1 / 5</span><button class="btn btn-primary" onclick="EL.fcNext()">Next →</button></div></div>
+<div id="panel-quiz" class="tabpanel hide"><div id="quizhost"></div></div>
+<div style="display:flex;justify-content:space-between;gap:10px;margin-top:26px;flex-wrap:wrap">
+  <a class="btn btn-ghost" href="../l/749.html">← Previous</a>
+  <a class="btn btn-primary" href="../l/751.html">Next lesson →</a>
+</div>
+<script id="lesson-data" type="application/json">{"id": 750, "cards": [{"front": "Same current through each res", "back": "is tor: I = I\u2081 = I\u2082 = I\u2083 = ..."}, {"front": "Voltages add", "back": "V = V\u2081 + V\u2082 + V\u2083 + ..."}, {"front": "Equivalent res", "back": "is tance: R_eq = R\u2081 + R\u2082 + R\u2083 + ... (greater than any individual resistance)."}, {"front": "Same voltage across each", "back": "V = V\u2081 = V\u2082 = V\u2083 = ..."}, {"front": "Currents add", "back": "I = I\u2081 + I\u2082 + I\u2083 + ..."}], "quiz": [{"q": "True or False: Same current through each resistor: I = I\u2081 = I\u2082 = I\u2083 = .", "c": ["True", "False"], "a": 0, "why": "Correct \u2014 the lesson states: Same current through each resistor: I = I\u2081 = I\u2082 = I\u2083 = ...", "d": "Easy", "k": "4.9 Combination of Resistors"}, {"q": "True or False: Voltages add: V = V\u2081 + V\u2082 + V\u2083 + .", "c": ["True", "False"], "a": 0, "why": "Correct \u2014 the lesson states: Voltages add: V = V\u2081 + V\u2082 + V\u2083 + ...", "d": "Easy", "k": "4.9 Combination of Resistors"}, {"q": "True or False: Same current through each res: V = V\u2081 = V\u2082 = V\u2083 = .", "c": ["True", "False"], "a": 1, "why": "False \u2014 the lesson says \u201cSame voltage across each: V = V\u2081 = V\u2082 = V\u2083 = ...\u201d, not \u201cSame current through each res\u201d.", "d": "Medium", "k": "4.9 Combination of Resistors"}, {"q": "Complete the statement from the lesson: \u201c______: V = V\u2081 + V\u2082 + V\u2083 + ...\u201d", "c": ["Equivalent res", "Same voltage across each", "Same current through each res", "Voltages add"], "a": 3, "why": "The lesson states: Voltages add: V = V\u2081 + V\u2082 + V\u2083 + ...", "d": "Easy", "k": "Voltages add"}, {"q": "Complete the statement from the lesson: \u201c______: I = I\u2081 + I\u2082 + I\u2083 + ...\u201d", "c": ["Currents add", "Same current through each res", "Voltages add", "Equivalent res"], "a": 0, "why": "The lesson states: Currents add: I = I\u2081 + I\u2082 + I\u2083 + ...", "d": "Easy", "k": "Currents add"}, {"q": "Fill in the blank using this lesson: \u201c> Example ______ (series): R\u2081=12, R\u2082=3, R\u2083=4, R\u2084=5 \u03a9, V=12 V.\u201d", "c": ["4.8", "0.50", "24", "12"], "a": 0, "why": "The lesson states: > Example 4.8 (series): R\u2081=12, R\u2082=3, R\u2083=4, R\u2084=5 \u03a9, V=12 V.", "d": "Hard", "k": "4.9 Combination of Resistors"}, {"q": "Fill in the blank using this lesson: \u201cR_eq = ______ \u03a9; I = 12/24 = 0.50 A.\u201d", "c": ["0.50", "4.8", "12", "24"], "a": 3, "why": "The lesson states: R_eq = 24 \u03a9; I = 12/24 = 0.50 A.", "d": "Hard", "k": "4.9 Combination of Resistors"}, {"q": "Use the relationship given in this lesson and work out the missing value: \u201c> Example 4.8 (series): R\u2081=12, R\u2082=3, R\u2083=4, R\u2084=5 \u03a9, V=12 V. R_eq = 24 \u03a9; I = 12/24 = ______ A.\u201d", "c": ["24", "0.50", "4.8", "12"], "a": 1, "why": "The lesson shows: > Example 4.8 (series): R\u2081=12, R\u2082=3, R\u2083=4, R\u2084=5 \u03a9, V=12 V. R_eq = 24 \u03a9; I = 12/24 = 0.50 A.", "d": "Hard", "k": "4.9 Combination of Resistors"}, {"q": "Use the relationship given in this lesson and work out the missing value: \u201c> Example 4.9 (parallel): R\u2081=12, R\u2082=12, R\u2083=6 \u03a9, V=12 V. 1/R_eq = 1/12+1/12+1/6 = 1/3 \u2192 R_eq = 3.0 \u03a9. I = 12/3 = 4.0 A. I\u2081=1.0, I\u2082=1.0, I\u2083=______ A.\u201d", "c": ["4.8", "2.0", "12", "24"], "a": 1, "why": "The lesson shows: > Example 4.9 (parallel): R\u2081=12, R\u2082=12, R\u2083=6 \u03a9, V=12 V. 1/R_eq = 1/12+1/12+1/6 = 1/3 \u2192 R_eq = 3.0 \u03a9. I = 12/3 = 4.0 A. I\u2081=1.0, I\u2082=1.0, I\u2083=2.0 A.", "d": "Hard", "k": "4.9 Combination of Resistors"}, {"q": "According to this lesson, which statement is correct?", "c": ["Voltages add: I = I\u2081 + I\u2082 + I\u2083 + ...", "Currents add: I = I\u2081 + I\u2082 + I\u2083 + ...", "Same current through each res: I = I\u2081 + I\u2082 + I\u2083 + ...", "Equivalent res: I = I\u2081 + I\u2082 + I\u2083 + ..."], "a": 1, "why": "The lesson states: Currents add: I = I\u2081 + I\u2082 + I\u2083 + .... The other options change a value or term from the lesson.", "d": "Medium", "k": "4.9 Combination of Resistors"}]}</script></main>
+<footer class="footer"><div class="wrap">
+  <div><b style="color:#fff">EduLearn</b><br>Grade 9–12 interactive digital learning platform.</div>
+  <div class="muted" style="color:#90a9c2">Static edition · progress is saved in this browser</div>
+</div></footer>
+<script src="../assets/site.js"></script>
+</body></html>

@@ -4,3 +4,4 @@
 platform.db.backup-*
 *.pyc
 __pycache__/
+# git is a source repo, not the published site: the generated docs/ tree is committed

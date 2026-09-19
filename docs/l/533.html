@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.3 Theorems on Polynomials · EduLearn</title>
+<meta name="description" content="">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<script>try{const m=document.cookie.match(/el_theme=([a-z]+)/);if(m&&m[1]==='dark')document.documentElement.dataset.theme='dark';}catch(e){}</script>
+</head><body>
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="../index.html" style="color:inherit;text-decoration:none"><div class="logo">EL</div>EduLearn</a>
+  <nav class="navlinks">
+    <a href="../index.html">Home</a>
+    <a href="javascript:void(0)" onclick="EL.toggleTheme()">Theme</a>
+  </nav>
+</div></header>
+<main class="wrap" style="padding-bottom:70px">
+<div class="crumb"><a href="../index.html">Home</a> › <a href="../s/10.html">Mathematics</a> › <b>Unit 2 — Polynomial Functions</b></div>
+<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+  <div style="flex:1;min-width:200px">
+    <span class="muted" style="font-size:12px">UNIT 2 · LESSON 3 OF 7 · GRADE 10 MATHEMATICS</span>
+    <h1 style="margin:2px 0 0;font-size:24px">2.3 Theorems on Polynomials</h1>
+  </div>
+  <span class="pill pill-not" id="statuspill" data-lstatus="533">◌ Not started</span>
+</div>
+<div class="pbar" style="margin:8px 0 14px"><div class="pfill blue" style="width:29%"></div></div>
+<div class="subtabs"><button class="subtab on" data-tab="learn">Learn</button><button class="subtab " data-tab="flash">Flashcards (1)</button><button class="subtab " data-tab="quiz">Assessment (10 Q)</button></div>
+<div id="panel-learn" class="tabpanel"><div class="lessonContent"><h3>Polynomial Division Theorem (Thm 2.1)</h3>
+<p>If f(x) and d(x) are polynomials with d(x)≠0 and deg d ≤ deg f, then there exist <strong>unique</strong> polynomials q(x) and r(x) such that
+<strong>f(x) = d(x)q(x) + r(x)</strong>
+where r(x)=0 or deg r &lt; deg d. If r(x)=0, d(x) divides f(x) exactly.</p>
+<h3>Remainder Theorem (Thm 2.2)</h3>
+<p>Let f(x) be a polynomial of degree ≥1 and c any real number. If f(x) is divided by (x−c), the <strong>remainder is f(c)</strong>.
+- The value of f at c equals the remainder when dividing by x−c.
+- Proof: f(x)=(x−c)q(x)+k, substitute x=c → f(c)=k.</p>
+<p><strong>Example:</strong> f(x)=x³−3x²+4, divide by x−1 → remainder f(1)=1−3+4=2.
+<strong>Example:</strong> f(x)=2x³+5x²+3x+2, divide by x+1 (=x−(−1)) → c=−1 → remainder f(−1)=−2+5−3+2=2.
+<strong>Example:</strong> 3x³−4x²+bx−5 divided by x−2 has remainder 10 → f(2)=24−16+2b−5=3+2b=10 → b=7/2... (check: the textbook gives b=7). Always set f(c)=given remainder and solve for the unknown.</p>
+<blockquote>
+<p>✍️ <strong>Must-know:</strong> For divisor (ax+b), write it as a(x−(−b/a)); the remainder is f(−b/a).</p>
+</blockquote>
+<h3>Factor Theorem (Thm 2.3)</h3>
+<p>Let f(x) be a polynomial of degree ≥1 and c any real number. Then:
+1. If f(c)=0, then (x−c) is a factor of f(x).
+2. If (x−c) is a factor of f(x), then f(c)=0.</p>
+<p><strong>Example:</strong> x+2 is a factor of x²+5x+6 because f(−2)=(−2)²+5(−2)+6=0.
+<strong>Example:</strong> f(x)=x⁴−x³−x²−x−2: f(−1)=0 (x+1 factor), f(2)=0 (x−2 factor), but f(−2)=20≠0 (x+2 not a factor).</p>
+<blockquote>
+<p>✍️ <strong>Must-know:</strong> Factor theorem is the reverse of remainder theorem: remainder 0 ⟺ (x−c) is a factor.</p>
+</blockquote>
+<hr /></div>
+  <div class="card mt16"><b>Summary</b><p class="muted">Read the lesson, memorise the key terms with the Flashcards tab,
+  then take the assessment — 80% passes the lesson.</p></div></div>
+<div id="panel-flash" class="tabpanel hide"><div class="fcard-wrap" onclick="EL.flip()"><div class="fcard" id="fc"><div class="face" id="fcf">Factor theorem</div><div class="face back" id="fcb">the reverse of remainder theorem: remainder 0 ⟺ (x−c) is a factor.</div></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px"><button class="btn btn-ghost" onclick="EL.fcPrev()">← Prev</button><span class="muted" id="fci">1 / 1</span><button class="btn btn-primary" onclick="EL.fcNext()">Next →</button></div></div>
+<div id="panel-quiz" class="tabpanel hide"><div id="quizhost"></div></div>
+<div style="display:flex;justify-content:space-between;gap:10px;margin-top:26px;flex-wrap:wrap">
+  <a class="btn btn-ghost" href="../l/532.html">← Previous</a>
+  <a class="btn btn-primary" href="../l/534.html">Next lesson →</a>
+</div>
+<script id="lesson-data" type="application/json">{"id": 533, "cards": [{"front": "Factor theorem", "back": "the reverse of remainder theorem: remainder 0 \u27fa (x\u2212c) is a factor."}], "quiz": [{"q": "True or False: Let f(x) be a polynomial of degree \u22651 and c any real number.", "c": ["True", "False"], "a": 0, "why": "Correct \u2014 the lesson states: Let f(x) be a polynomial of degree \u22651 and c any real number.", "d": "Easy", "k": "2.3 Theorems on Polynomials"}, {"q": "True or False: The value of f at c equals the remainder when dividing by x\u2212c.", "c": ["True", "False"], "a": 0, "why": "Correct \u2014 the lesson states: The value of f at c equals the remainder when dividing by x\u2212c.", "d": "Easy", "k": "2.3 Theorems on Polynomials"}, {"q": "True or False: Example: f(x)=x\u2074\u2212x\u00b3\u2212x\u00b2\u2212x\u22122: f(\u22121)=0 (x+1 factor), f(2)=0 (x\u22122 factor), but f(\u22122)=60\u22600 (x+2 not a factor).", "c": ["True", "False"], "a": 1, "why": "False \u2014 the lesson states \u201cExample: f(x)=x\u2074\u2212x\u00b3\u2212x\u00b2\u2212x\u22122: f(\u22121)=0 (x+1 factor), f(2)=0 (x\u22122 factor), but f(\u22122)=20\u22600 (x+2 not a factor).\u201d, not 60.", "d": "Medium", "k": "2.3 Theorems on Polynomials"}, {"q": "Which of the following best describes Factor theorem?", "c": ["the reverse of remainder theorem: remainder 0 \u27fa (x\u2212c) is a factor.", "multiply each term of one by every term of the other (distributive property).", "a\u2099 (the nonzero coefficient of the highest power).", "n (the highest exponent)."], "a": 0, "why": "Factor theorem \u2014 the reverse of remainder theorem: remainder 0 \u27fa (x\u2212c) is a factor.", "d": "Medium", "k": "Factor theorem"}, {"q": "Complete the statement from the lesson: \u201c> \u270d\ufe0f Must-know: ______ is the reverse of remainder theorem: remainder 0 \u27fa (x\u2212c) is a factor.\u201d", "c": ["Degree", "Leading coefficient", "Non-polynomials", "Factor theorem"], "a": 3, "why": "The lesson states: > \u270d\ufe0f Must-know: Factor theorem is the reverse of remainder theorem: remainder 0 \u27fa (x\u2212c) is a factor.", "d": "Easy", "k": "Factor theorem"}, {"q": "Which term matches this description? \u201cthe reverse of remainder theorem: remainder 0 \u27fa (x\u2212c) is a factor.\u201d", "c": ["Non-polynomials", "Degree", "Leading coefficient", "Factor theorem"], "a": 3, "why": "That statement describes Factor theorem.", "d": "Medium", "k": "Factor theorem"}, {"q": "Fill in the blank using this lesson: \u201cExample: f(x)=x\u2074\u2212x\u00b3\u2212x\u00b2\u2212x\u22122: f(\u22121)=0 (x+1 factor), f(2)=0 (x\u22122 factor), but f(\u22122)=______\u22600 (x+2 not a factor).\u201d", "c": ["20", "0 a", "2.2", "2.1"], "a": 0, "why": "The lesson states: Example: f(x)=x\u2074\u2212x\u00b3\u2212x\u00b2\u2212x\u22122: f(\u22121)=0 (x+1 factor), f(2)=0 (x\u22122 factor), but f(\u22122)=20\u22600 (x+2 not a factor).", "d": "Hard", "k": "2.3 Theorems on Polynomials"}, {"q": "Use the relationship given in this lesson and work out the missing value: \u201cExample: f(x)=x\u2074\u2212x\u00b3\u2212x\u00b2\u2212x\u22122: f(\u22121)=0 (x+1 factor), f(2)=0 (x\u22122 factor), but f(\u22122)=______\u22600 (x+2 not a factor).\u201d", "c": ["20", "2.1", "2.2", "0 a"], "a": 0, "why": "The lesson shows: Example: f(x)=x\u2074\u2212x\u00b3\u2212x\u00b2\u2212x\u22122: f(\u22121)=0 (x+1 factor), f(2)=0 (x\u22122 factor), but f(\u22122)=20\u22600 (x+2 not a factor).", "d": "Hard", "k": "2.3 Theorems on Polynomials"}, {"q": "According to this lesson, which statement is correct?", "c": ["> \u270d\ufe0f Must-know: Leading coefficient is the reverse of remainder theorem: remainder 0 \u27fa (x\u2212c) is a factor.", "> \u270d\ufe0f Must-know: Factor theorem is the reverse of remainder theorem: remainder 0 \u27fa (x\u2212c) is a factor.", "> \u270d\ufe0f Must-know: Degree is the reverse of remainder theorem: remainder 0 \u27fa (x\u2212c) is a factor.", "> \u270d\ufe0f Must-know: Non-polynomials is the reverse of remainder theorem: remainder 0 \u27fa (x\u2212c) is a factor."], "a": 1, "why": "The lesson states: > \u270d\ufe0f Must-know: Factor theorem is the reverse of remainder theorem: remainder 0 \u27fa (x\u2212c) is a factor.. The other options change a value or term from the lesson.", "d": "Medium", "k": "2.3 Theorems on Polynomials"}, {"q": "True or False: f(x) = d(x)q(x) + r(x).", "c": ["True", "False"], "a": 0, "why": "Correct \u2014 this lesson states: f(x) = d(x)q(x) + r(x)", "d": "Easy", "k": "2.3 Theorems on Polynomials"}]}</script></main>
+<footer class="footer"><div class="wrap">
+  <div><b style="color:#fff">EduLearn</b><br>Grade 9–12 interactive digital learning platform.</div>
+  <div class="muted" style="color:#90a9c2">Static edition · progress is saved in this browser</div>
+</div></footer>
+<script src="../assets/site.js"></script>
+</body></html>

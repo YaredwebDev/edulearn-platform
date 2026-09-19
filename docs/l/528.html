@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1.2 Functions · EduLearn</title>
+<meta name="description" content="">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<script>try{const m=document.cookie.match(/el_theme=([a-z]+)/);if(m&&m[1]==='dark')document.documentElement.dataset.theme='dark';}catch(e){}</script>
+</head><body>
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="../index.html" style="color:inherit;text-decoration:none"><div class="logo">EL</div>EduLearn</a>
+  <nav class="navlinks">
+    <a href="../index.html">Home</a>
+    <a href="javascript:void(0)" onclick="EL.toggleTheme()">Theme</a>
+  </nav>
+</div></header>
+<main class="wrap" style="padding-bottom:70px">
+<div class="crumb"><a href="../index.html">Home</a> › <a href="../s/10.html">Mathematics</a> › <b>Unit 1 — Relations and Functions</b></div>
+<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+  <div style="flex:1;min-width:200px">
+    <span class="muted" style="font-size:12px">UNIT 1 · LESSON 2 OF 4 · GRADE 10 MATHEMATICS</span>
+    <h1 style="margin:2px 0 0;font-size:24px">1.2 Functions</h1>
+  </div>
+  <span class="pill pill-not" id="statuspill" data-lstatus="528">◌ Not started</span>
+</div>
+<div class="pbar" style="margin:8px 0 14px"><div class="pfill blue" style="width:25%"></div></div>
+<div class="subtabs"><button class="subtab on" data-tab="learn">Learn</button><button class="subtab " data-tab="flash">Flashcards (12)</button><button class="subtab " data-tab="quiz">Assessment (10 Q)</button></div>
+<div id="panel-learn" class="tabpanel"><div class="lessonContent"><h3>1.2.1 The notion of function</h3>
+<p><strong>Definition (Function):</strong> A function f is a set of ordered pairs with the property that whenever (x,y) and (x,z) belong to f, then y=z. Equivalently: a relation in which <strong>no two distinct ordered pairs have the same first element</strong>.</p>
+<ul>
+<li>Repeated first elements are allowed <strong>only if</strong> they map to the same second element. Example: {(1,5),(1,5),(3,−8),(3,−8),(7,4)} IS a function (duplicates removed).</li>
+<li>R={(2,3),(5,3),(3,6),(7,6),(5,8)} is NOT a function because (5,3) and (5,8) share first element 5 but differ.</li>
+</ul>
+<p><strong>Domain, co-domain, range:</strong>
+- <strong>Domain</strong> = set of all input (x) values.
+- <strong>Co-domain</strong> = set of all possible outputs (B in f:A→B).
+- <strong>Range</strong> = set of actual outputs f(x) (a subset of the co-domain).</p>
+<p>Notation: f(x) is the <strong>image</strong> of x; x is the <strong>pre-image</strong> of f(x). f:A→B means domain is A and range ⊆ B.</p>
+<p><strong>Examples:</strong>
+- f(x)=3x+4: domain ℝ, range ℝ (every real has a pre-image).
+- f(x)=√(x−2): domain {x≥2}, range {y≥0}.
+- f(x)=1−3x²: domain ℝ; f(2)=1−12=−11, f(−1)=1−3=−2.</p>
+<blockquote>
+<p>✍️ <strong>Must-know:</strong> To find a domain: (i) denominators ≠ 0, (ii) expressions under even radicals ≥ 0. Evaluating f at a means substituting x=a into the formula.</p>
+</blockquote>
+<h3>1.2.2 Combination of functions</h3>
+<p>For two functions f and g with overlapping (intersecting) domains:</p>
+<ul>
+<li><strong>Sum:</strong> (f+g)(x) = f(x) + g(x)</li>
+<li><strong>Difference:</strong> (f−g)(x) = f(x) − g(x)</li>
+<li><strong>Product:</strong> (fg)(x) = f(x)·g(x)</li>
+<li><strong>Quotient:</strong> (f/g)(x) = f(x)/g(x), <strong>g(x)≠0</strong></li>
+</ul>
+<p>The domain of a combination = intersection of the domains of f and g; for the quotient, additionally exclude where g(x)=0.</p>
+<p><strong>Example:</strong> f(x)=x−5, g(x)=2x+1 → domain of f+g and f−g is ℝ (both domains are ℝ).
+<strong>Example:</strong> f(x)=√x, g(x)=√(4−x²). Domain f=[0,∞), domain g=[−2,2]. Intersection = [0,2]. (f/g): g≠0 → [0,2). (g/f): f≠0 → (0,2].</p>
+<blockquote>
+<p>✍️ <strong>Must-know:</strong> Domain of f/g = (domain f ∩ domain g) minus points where g(x)=0. Domain of fg = domain f ∩ domain g.</p>
+</blockquote>
+<h3>Vertical Line Test</h3>
+<p>A graph is the graph of a <strong>function</strong> if and only if <strong>no vertical line intersects the graph in more than one point</strong>. If a vertical line cuts a curve twice, the curve is NOT a function.</p>
+<h3>1.2.3 Types of functions</h3>
+<ul>
+<li><strong>One-to-one (injective):</strong> each element of the domain has a distinct image. f:ℝ→ℝ, f(x)=3x+5 is one-to-one because f(x₁)=f(x₂) ⟹ 3x₁+5=3x₂+5 ⟹ x₁=x₂.</li>
+<li><strong>Onto (surjective):</strong> each element of the co-domain has at least one pre-image.</li>
+<li><strong>One-to-one correspondence (bijective):</strong> both injective and surjective.</li>
+</ul>
+<p><strong>Examples (fig. 1.19):</strong> (a) onto but not one-to-one; (b) both one-to-one and onto (bijective); (c) injective but not surjective; (d) neither injective nor surjective.</p>
+<blockquote>
+<p>✍️ <strong>Must-know:</strong> Injective ⟺ distinct x give distinct y. Surjective ⟺ range = co-domain. Bijective = injective + surjective. f(x)=x² on ℝ→ℝ is neither injective nor surjective.</p>
+</blockquote>
+<h3>1.2.4 Graphs of functions</h3>
+<p><strong>Graph of a function</strong> = set of all points {(x, f(x)) : x ∈ domain}.</p>
+<p><strong>Linear function:</strong> f(x)=ax+b, a≠0. Constant function: f(x)=b.
+- Graph is a straight line.
+- a&gt;0 → increasing; a&lt;0 → decreasing; a=0 → horizontal.
+- Slope = a, y-intercept (0,b), x-intercept (−b/a, 0).</p>
+<p><img alt="Linear functions with different slopes through (0,2)" src="u1_linear_slopes.png" /></p>
+<blockquote>
+<p>✍️ <strong>Must-know:</strong> In f(x)=ax+b, the coefficient a is the <strong>slope</strong> (steepness), b is the <strong>y-intercept</strong>. Bigger |a| → steeper line.</p>
+</blockquote>
+<p><strong>Quadratic function:</strong> f(x)=ax²+bx+c, a≠0. Graph is a <strong>parabola</strong> (U-shape).</p>
+<ul>
+<li>If a&gt;0 the parabola opens <strong>upward</strong> (has a minimum); if a&lt;0 it opens <strong>downward</strong> (has a maximum).</li>
+<li><strong>Vertex (turning point):</strong> (−b/2a, (4ac−b²)/4a).</li>
+<li><strong>Axis of symmetry:</strong> the vertical line x=−b/2a through the vertex.</li>
+<li>Domain = ℝ. Range = {y ≥ vertex-value} if a&gt;0, {y ≤ vertex-value} if a&lt;0.</li>
+</ul>
+<p><strong>Graphs of y=ax²:</strong> larger |a| makes the parabola narrower (steeper); smaller |a| wider.</p>
+<p><img alt="The parabola family y=ax²" src="u1_parabola_family.png" /></p>
+<p><strong>Graph of y=(x−k)²+c:</strong> shift y=x² right by k and up by c; vertex at (k,c).</p>
+<p><img alt="Shifting y=x² to y=(x−3)²+2" src="u1_parabola_shift.png" /></p>
+<p><strong>Completing the square</strong> turns ax²+bx+c into vertex form:
+ax²+bx+c = a(x + b/2a)² + (4ac−b²)/4a
+so the vertex is (−b/2a, (4ac−b²)/4a).</p>
+<p><img alt="Parabola y=x²+6x+11 = (x+3)²+2" src="u1_parabola_csq.png" /></p>
+<p><strong>Example:</strong> y=x²+6x+11 = (x+3)²+2 → vertex (−3,2), axis x=−3, y-intercept (0,11), no x-intercept (opens up, vertex above axis).</p>
+<p><strong>Example:</strong> y=−x²+2x+3 = −(x−1)²+4 → vertex (1,4), opens down, x-intercepts from −(x−1)²+4=0 → x=−1 or 3, y-intercept (0,3).</p>
+<p><img alt="Parabola y=−x²+2x+3 (maximum)" src="u1_parabola_max.png" /></p>
+<blockquote>
+<p>✍️ <strong>Must-know:</strong> Vertex form y=a(x−k)²+c: vertex (k,c); minimum value c if a&gt;0, maximum value c if a&lt;0. Use completing the square to find the vertex of any quadratic.</p>
+</blockquote>
+<hr /></div>
+  <div class="card mt16"><b>Summary</b><p class="muted">Read the lesson, memorise the key terms with the Flashcards tab,
+  then take the assessment — 80% passes the lesson.</p></div></div>
+<div id="panel-flash" class="tabpanel hide"><div class="fcard-wrap" onclick="EL.flip()"><div class="fcard" id="fc"><div class="face" id="fcf">A function f</div><div class="face back" id="fcb">a set of ordered pairs with the property that whenever (x,y) and (x,z) belong to f, then y=z. Equivalently: a relation in which no two distinct ordered pairs have the same first element.</div></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px"><button class="btn btn-ghost" onclick="EL.fcPrev()">← Prev</button><span class="muted" id="fci">1 / 12</span><button class="btn btn-primary" onclick="EL.fcNext()">Next →</button></div></div>
+<div id="panel-quiz" class="tabpanel hide"><div id="quizhost"></div></div>
+<div style="display:flex;justify-content:space-between;gap:10px;margin-top:26px;flex-wrap:wrap">
+  <a class="btn btn-ghost" href="../l/527.html">← Previous</a>
+  <a class="btn btn-primary" href="../l/529.html">Next lesson →</a>
+</div>
+<script id="lesson-data" type="application/json">{"id": 528, "cards": [{"front": "A function f", "back": "a set of ordered pairs with the property that whenever (x,y) and (x,z) belong to f, then y=z. Equivalently: a relation in which no two distinct ordered pairs have the same first element."}, {"front": "Repeated first elements", "back": "are allowed only if they map to the same second element. Example: {(1,5),(1,5),(3,\u22128),(3,\u22128),(7,4)} IS a function (duplicates removed)."}, {"front": "Domain", "back": "set of all input (x) values."}, {"front": "Range", "back": "set of actual outputs f(x) (a subset of the co-domain)."}, {"front": "Evaluating f at a", "back": "substituting x=a into the formula."}, {"front": "Quotient", "back": "(f/g)(x) = f(x)/g(x), g(x)\u22600"}, {"front": "A graph", "back": "the graph of a function if and only if no vertical line intersects the graph in more than one point. If a vertical line cuts a curve twice, the curve is NOT a function."}, {"front": "Onto (surjective)", "back": "each element of the co-domain has at least one pre-image."}, {"front": "One-to-one correspondence (bijective)", "back": "both injective and surjective."}, {"front": "Linear function", "back": "f(x)=ax+b, a\u22600. Constant function: f(x)=b."}, {"front": "Slope", "back": "a, y-intercept (0,b), x-intercept (\u2212b/a, 0)."}, {"front": "Quadratic function", "back": "f(x)=ax\u00b2+bx+c, a\u22600. Graph is a parabola (U-shape)."}], "quiz": [{"q": "True or False: Definition (Function): A function f is a set of ordered pairs with the property that whenever (x,y) and (x,z) belong to f, then y=z.", "c": ["True", "False"], "a": 0, "why": "Correct \u2014 the lesson states: Definition (Function): A function f is a set of ordered pairs with the property that whenever (x,y) and (x,z) belong to f, then y=z.", "d": "Easy", "k": "1.2 Functions"}, {"q": "True or False: Equivalently: a relation in which no two distinct ordered pairs have the same first element.", "c": ["True", "False"], "a": 0, "why": "Correct \u2014 the lesson states: Equivalently: a relation in which no two distinct ordered pairs have the same first element.", "d": "Easy", "k": "1.2 Functions"}, {"q": "True or False: A function f are allowed only if they map to the same second element.", "c": ["True", "False"], "a": 1, "why": "False \u2014 the lesson says \u201cRepeated first elements are allowed only if they map to the same second element.\u201d, not \u201cA function f\u201d.", "d": "Medium", "k": "1.2 Functions"}, {"q": "Which of the following best describes Domain?", "c": ["set of actual outputs f(x) (a subset of the co-domain).", "each element of the co-domain has at least one pre-image.", "the graph of a function if and only if no vertical line intersects the graph in more than one point. If a vertical line cuts a curve twice, the curve\u2026", "set of all input (x) values."], "a": 3, "why": "Domain \u2014 set of all input (x) values.", "d": "Medium", "k": "Domain"}, {"q": "Which of the following best describes Range?", "c": ["set of all input (x) values.", "each element of the co-domain has at least one pre-image.", "the graph of a function if and only if no vertical line intersects the graph in more than one point. If a vertical line cuts a curve twice, the curve\u2026", "set of actual outputs f(x) (a subset of the co-domain)."], "a": 3, "why": "Range \u2014 set of actual outputs f(x) (a subset of the co-domain).", "d": "Medium", "k": "Range"}, {"q": "Which of the following best describes A graph?", "c": ["set of actual outputs f(x) (a subset of the co-domain).", "each element of the co-domain has at least one pre-image.", "set of all input (x) values.", "the graph of a function if and only if no vertical line intersects the graph in more than one point. If a vertical line cuts a curve twice, the curve\u2026"], "a": 3, "why": "A graph \u2014 the graph of a function if and only if no vertical line intersects the graph in more than one point. If a vertical line cuts a curve twice, the curve is NOT a function.", "d": "Medium", "k": "A graph"}, {"q": "Complete the statement from the lesson: \u201cDefinition (Function): ______ is a set of ordered pairs with the property that whenever (x,y) and (x,z) belong to f, then y=z.\u201d", "c": ["Range", "Domain", "A function f", "Repeated first elements"], "a": 2, "why": "The lesson states: Definition (Function): A function f is a set of ordered pairs with the property that whenever (x,y) and (x,z) belong to f, then y=z.", "d": "Easy", "k": "A function f"}, {"q": "Complete the statement from the lesson: \u201c______ are allowed only if they map to the same second element.\u201d", "c": ["Range", "Repeated first elements", "A function f", "Domain"], "a": 1, "why": "The lesson states: Repeated first elements are allowed only if they map to the same second element.", "d": "Easy", "k": "Repeated first elements"}, {"q": "Which term matches this description? \u201cset of all input (x) values.\u201d", "c": ["Repeated first elements", "Domain", "Range", "A function f"], "a": 1, "why": "That statement describes Domain.", "d": "Medium", "k": "Domain"}, {"q": "Fill in the blank using this lesson: \u201cExample: {(______),(1,5),(3,\u22128),(3,\u22128),(7,4)} IS a function (duplicates removed).\u201d", "c": ["7,4", "5,3", "2,3", "1,5"], "a": 3, "why": "The lesson states: Example: {(1,5),(1,5),(3,\u22128),(3,\u22128),(7,4)} IS a function (duplicates removed).", "d": "Hard", "k": "1.2 Functions"}]}</script></main>
+<footer class="footer"><div class="wrap">
+  <div><b style="color:#fff">EduLearn</b><br>Grade 9–12 interactive digital learning platform.</div>
+  <div class="muted" style="color:#90a9c2">Static edition · progress is saved in this browser</div>
+</div></footer>
+<script src="../assets/site.js"></script>
+</body></html>
