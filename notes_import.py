@@ -309,6 +309,43 @@ def parse_markdown(text, fallback_title=""):
     return parse_html(html, fallback_title)
 
 
+def _is_helper_file(name):
+    """README-style files are documentation, not study notes."""
+    stem = os.path.splitext(os.path.basename(name))[0].strip().lower()
+    return stem in ("readme", "index", "license", "changelog") or stem.startswith("readme")
+
+
+# A 'unit' that is really a boxed extra rather than a chapter of the textbook.
+_BOX_RX = re.compile(r"(quick\s*revision|must[-\s]*know|formula\s*sheet|exam[-\s]*trap|"
+                     r"glossary|how\s*to\s*use|key\s*facts|cheat\s*sheet)", re.I)
+_TOC_RX = re.compile(r"^\s*(?:[\U0001F300-\U0001FAFF\u2600-\u27BF]+\s*)?table\s*of\s*contents", re.I)
+
+
+def tidy_units(units):
+    """Tidy a parsed document into clean textbook units.
+
+    * drops a 'Table of Contents' pseudo-unit (navigation, not learning content)
+    * folds single-lesson revision/formula/glossary 'units' into the previous unit
+      as ordinary lessons, so every unit is a real chapter
+    """
+    out = []
+    for u in units:
+        title = (u["title"] or "").strip()
+        body = " ".join(strip_tags(l.get("body_html") or l.get("body_md") or "")
+                        for l in u["lessons"])
+        if _TOC_RX.match(title) or (title.lower().startswith(("📑",)) and "content" in title.lower()):
+            continue                                   # navigation only
+        if out and _BOX_RX.search(title) and len(u["lessons"]) <= 2 and not u.get("intro"):
+            prev = out[-1]                             # it belongs to the unit before it
+            for l in u["lessons"]:
+                if not l["title"] or l["title"].strip().lower().startswith("📑"):
+                    l["title"] = title
+                prev["lessons"].append(l)
+            continue
+        out.append(u)
+    return out
+
+
 def audit(units):
     """Quality checks on a parsed document: returns a list of human-readable issues."""
     issues = []
@@ -347,6 +384,7 @@ def strip_tags(html_text):
 
 def _renumber(units):
     """Make unit/lesson numbering dense and ordered; drop empties."""
+    units = tidy_units(units)
     units = [u for u in units if u["lessons"] or u["intro"]]
     for i, u in enumerate(units, 1):
         u["number"] = i
@@ -516,7 +554,8 @@ def _import_text(path, text, kind="html", replace=True, dry=False, verbose=True)
 
 def import_folder(folder, only=None, replace=True, dry=False):
     files = sorted(f for f in os.listdir(folder)
-                   if f.lower().endswith((".html", ".htm", ".md", ".txt", ".zip", ".docx", ".pdf")))
+                   if f.lower().endswith((".html", ".htm", ".md", ".txt", ".zip", ".docx", ".pdf"))
+                   and not _is_helper_file(f))
     if not files:
         print("No .html files found in", folder)
         return []
@@ -544,7 +583,8 @@ def main():
 
     if args.preview:                      # breakdown preview, nothing is written
         files = sorted(f for f in os.listdir(args.notes)
-                       if f.lower().endswith((".html", ".htm", ".md", ".txt", ".zip", ".docx", ".pdf")))
+                       if f.lower().endswith((".html", ".htm", ".md", ".txt", ".zip", ".docx", ".pdf"))
+                       and not _is_helper_file(f))
         for f in files:
             path = os.path.join(args.notes, f)
             g, _c, n = guess_subject(path)
@@ -556,6 +596,7 @@ def main():
             try:
                 for name_in, text, kind in read_documents(path):
                     units = parse_html(text, fallback_title=n) if kind == "html" else parse_markdown(text, n)
+                    units = _renumber(units)   # show exactly what would be imported
                     if len(files) > 1 or True:
                         pass
                     print_tree(units)

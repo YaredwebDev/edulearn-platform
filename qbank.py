@@ -357,6 +357,42 @@ def occurs_in(body_tokens, frag_tokens):
     return False
 
 
+
+_SING_VERB = {"is", "was", "has", "does", "comes", "includes", "makes", "carries", "helps",
+              "depends", "means", "refers", "occurs", "consists", "contains", "allows",
+              "requires", "takes", "gives", "shows", "uses", "causes", "forms", "needs",
+              "remains", "becomes", "lives", "grows", "eats", "moves", "produces",
+              "transports", "protects", "stores", "absorbs", "releases"}
+_PLUR_VERB = {"are", "were", "have", "do", "come", "include", "make", "carry", "help",
+              "depend", "mean", "refer", "occur", "consist", "contain", "allow", "require",
+              "take", "give", "show", "use", "cause", "form", "need", "remain", "become",
+              "live", "grow", "eat", "move", "produce", "transport", "protect", "store",
+              "absorb", "release"}
+
+
+_VERB_RX = re.compile(
+    r"^(?:The\s+)?(.{2,45}?)\s+(" +
+    "|".join(sorted(_SING_VERB | _PLUR_VERB, key=len, reverse=True)) + r")\b", re.I)
+
+
+def _looks_plural(term):
+    """Conservative guess at whether a subject term takes a plural verb."""
+    t = term.strip().lower()
+    if t.endswith(("ss", "is", "us", "ics", "sis", "as", "ous")):
+        return False
+    return t.endswith("s")
+
+
+def _agrees(term, verb):
+    """False when subject and verb disagree in number: 'Biology are', 'Living things is'."""
+    v = (verb or "").strip().lower().strip(".,;:\u201c\u201d\"'")
+    if v not in _SING_VERB and v not in _PLUR_VERB:
+        return True
+    if _looks_plural(term):
+        return v not in _SING_VERB
+    return v not in _PLUR_VERB
+
+
 class LessonQuestions:
     def __init__(self, lesson, corpus):
         self.lesson = lesson
@@ -369,6 +405,11 @@ class LessonQuestions:
         self.blocks = bullets(self.md)
         self.used = set()
         self.items = []
+        self.concept_uses = {}      # how many questions each fact already produced
+        self.concept_cap = 2        # ...and the most it may produce in a normal pass
+        # questions tagged with the lesson title as a whole ask about *different* facts
+        # (one per bullet), so they must not be limited by the per-fact cap
+        self.title_key = self.key(lesson["title"] or "")
 
     # -- plumbing -----------------------------------------------------------
     def key(self, prompt):
@@ -386,6 +427,9 @@ class LessonQuestions:
         k = self.key(prompt)
         if k in self.used:
             return False
+        ck = self.key(concept) if concept else ""
+        if ck and ck != self.title_key and self.concept_uses.get(ck, 0) >= self.concept_cap:
+            return False        # this fact already has its share of questions
         prompt_c = re.sub(r"\*+", "", strip_md(str(prompt))).replace(" :", ":")
         prompt_c = re.sub(r"\s{2,}", " ", prompt_c).strip()
         choices_c = [re.sub(r"\s{2,}", " ", re.sub(r"\*+", "", strip_md(str(c)))).strip() for c in choices]
@@ -394,7 +438,18 @@ class LessonQuestions:
             return False
         if "|" in prompt_c or "**" in prompt_c:
             return False
+        if prompt_c[:14].lower().startswith("true or false"):
+            stmt = prompt_c.split(":", 1)[-1].strip()
+            m = _VERB_RX.match(stmt)
+            if m and not _agrees(m.group(1).strip(), m.group(2)):
+                return False
+            mw = re.search(r"\bthe word\s+(.{2,40}?)\s+(?:comes|is|means|refers|derives)\b",
+                           stmt, re.I)
+            if mw and " " in mw.group(1).strip():
+                return False
         self.used.add(k)
+        if ck:
+            self.concept_uses[ck] = self.concept_uses.get(ck, 0) + 1
         self.items.append({"qtype": qtype, "prompt": prompt_c, "choices": choices_c,
                            "answer_index": idx, "explanation": why_c, "concept": strip_md(concept)[:80],
                            "difficulty": difficulty})
@@ -872,10 +927,12 @@ class LessonQuestions:
                 fn(2, 2)
             else:
                 fn(cap)
-        # top up from every remaining source until the lesson has its full set
-        for _ in range(4):
-            if len(self.items) >= need:
-                break
+        # Widen the per-fact cap step by step until the lesson has its full set:
+        # variety first, completeness guaranteed. Nothing is lost because push()
+        # still rejects duplicate prompts and invalid choices.
+        cap = self.concept_cap
+        while len(self.items) < need and cap <= 8:
+            self.concept_cap = cap
             before = len(self.items)
             self.strategy_bullet_tf(3, 3)
             self.strategy_keyterms(4)
@@ -887,8 +944,8 @@ class LessonQuestions:
             self.strategy_definitions(4)
             self.strategy_worked(3)
             self.strategy_list(2)
-            if len(self.items) == before:
-                break
+            if len(self.items) == before:      # this cap is exhausted -> allow more repeats
+                cap += 1
         return self.items[:need]
 
 
