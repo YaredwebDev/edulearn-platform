@@ -70,6 +70,14 @@ def clean_term(t):
 UNIT_ONLY = re.compile(r"^[\d\s.,/%°·×^\-]*(?:kg|g|mg|km|cm|mm|nm|pm|ml|mls|l|mol|mmol|j|kj|nm|hz|ev|v|a|n|pa|atm|c|k|s|min|h|°c|°f|g/cm3|g/ml|g/l)[\d\s.,/%°·×^\-]*$", re.I)
 
 
+_VERB_START = re.compile(
+    r"^(?:is|are|was|were|has|have|had|can|may|must|should|will|would|helps?|provides?|deals?|"
+    r"uses?|studies|study|includes?|describes?|refers?|occurs?|consists?|contains?|allows?|"
+    r"requires?|takes?|gives?|shows?|causes?|forms?|needs?|remains?|becomes?|lives?|grows?|"
+    r"eats?|moves?|produces?|transports?|protects?|stores?|absorbs?|releases?|means|"
+    r"increases?|decreases?|depends?|varies?|changes?|happens?|helps|allows|enables)\b", re.I)
+
+
 def term_ok(t):
     if not (2 <= len(t) <= 44):
         return False
@@ -86,6 +94,12 @@ def term_ok(t):
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 \-'&.()/+]*", t):
         return False
     if len(t.split()) > 6 or not re.search(r"[A-Za-z]{2}", t):
+        return False
+    if re.search(r"(?:^|\s)[a-z](?:\s|$)", t):        # "Helps d", "Provides c" -> fragments
+        return False
+    if re.match(r"^\d+[A-Z]?\.", t):                  # "8D.2 Phrasal verbs" -> a heading, not a term
+        return False
+    if _VERB_START.match(t):                          # "Deals with the motion ..." -> a clause
         return False
     return True
 
@@ -220,6 +234,17 @@ COLON_DEF = re.compile(r"^\s*(?:[-*•]\s*)?(?P<t>[A-Z][\w'’\-]*(?:\s+[\w'’\
 DASH_DEF = re.compile(r"^\s*(?:[-*•]\s*)?(?P<t>[A-Z][\w'’\-]*(?:\s+[\w'’\-]+){0,4})\s+[–—]\s+(?P<d>[A-Za-z(].{24,})$")
 
 
+TABLE_ROW = re.compile(
+    r"^\s*\|\s*\*{0,2}(?P<t>[^*|]{2,44}?)\*{0,2}\s*\|\s*(?P<d>[^*|].{20,}?)\s*\|?\s*$")
+TABLE_SEP = re.compile(r"^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$")
+TABLE_HEADER = {"branch", "field", "description", "what it studies", "term", "definition",
+                "type", "types", "example", "examples", "unit", "quantity", "symbol",
+                "name", "meaning", "definition/explanation", "function", "feature",
+                "category", "characteristic", "advantages", "disadvantages", "item",
+                "no", "s/no", "step", "stage", "process", "formula", "property",
+                "properties", "structure", "function(s)", "explanation", "notes"}
+
+
 def extract_pairs(md):
     """Return [(term, definition, raw)] mined from one lesson's markdown."""
     pairs, seen = [], set()
@@ -234,9 +259,20 @@ def extract_pairs(md):
         seen.add(key)
         pairs.append((term, defn, strip_md(raw)))
 
-    for line in re.split(r"\n", md or ""):
-        line = line.strip()
+    lines = re.split(r"\n", md or "")
+    for idx, raw_line in enumerate(lines):
+        line = raw_line.strip()
         if not line or line.startswith("#"):
+            continue
+        # ---- markdown table rows: most of these notes are tables ----
+        tm = TABLE_ROW.match(line)
+        if tm:
+            term, defn = tm.group("t").strip(), tm.group("d").strip()
+            nxt = lines[idx + 1].strip() if idx + 1 < len(lines) else ""
+            is_header = (term.lower() in TABLE_HEADER or defn.lower() in TABLE_HEADER
+                         or bool(TABLE_SEP.match(nxt)))
+            if not is_header and SEP not in term and not term.endswith(":"):
+                add(term, defn, line)
             continue
         candidates = [line] + ([strip_md(line)] if "**" in line else [])
         matched = False
@@ -287,6 +323,21 @@ class Corpus:
                 key = t.lower()
                 if key not in self.lookup or (is_prose(d) and not is_prose(self.lookup[key][1])):
                     self.lookup[key] = (t, d, lid)
+
+    def words(self, exclude_lesson=None, n=60):
+        """Distinctive words from other lessons of this subject (distractors for thin lessons)."""
+        pool = set()
+        for r in db.query("""SELECT l.content_md md, l.content_html html FROM lessons l
+                             JOIN units u ON l.unit_id=u.id
+                             WHERE u.subject_id=? AND (? IS NULL OR l.id!=?)""",
+                          (self.subject_id, exclude_lesson, exclude_lesson)):
+            text = r["md"] or r["html"] or ""
+            pool.update(w.lower() for w in re.findall(r"[A-Za-z]{6,}", text))
+        pool -= {"should", "because", "between", "through", "however", "example",
+                 "following", "different", "another", "therefore", "including", "without"}
+        pool = sorted(pool)
+        random.shuffle(pool)
+        return pool[:n]
 
     def define(self, term, exclude_lesson=None):
         """Definition of a term found anywhere in the subject (used for key-terms lessons)."""
@@ -405,6 +456,8 @@ class LessonQuestions:
         self.blocks = bullets(self.md)
         self.used = set()
         self.items = []
+        self.tf_polarity = {"true": 0, "false": 0}   # keeps True/False answers balanced
+        self.polarity_cap = 0                        # 0 = no limit yet
         self.concept_uses = {}      # how many questions each fact already produced
         self.concept_cap = 2        # ...and the most it may produce in a normal pass
         # questions tagged with the lesson title as a whole ask about *different* facts
@@ -427,6 +480,10 @@ class LessonQuestions:
         k = self.key(prompt)
         if k in self.used:
             return False
+        if qtype == "tf" and self.polarity_cap:
+            pol = norm[idx]
+            if pol in ("true", "false") and self.tf_polarity[pol] >= self.polarity_cap:
+                return False        # stop one answer filling the whole assessment
         ck = self.key(concept) if concept else ""
         if ck and ck != self.title_key and self.concept_uses.get(ck, 0) >= self.concept_cap:
             return False        # this fact already has its share of questions
@@ -448,6 +505,8 @@ class LessonQuestions:
             if mw and " " in mw.group(1).strip():
                 return False
         self.used.add(k)
+        if qtype == "tf" and norm[idx] in ("true", "false"):
+            self.tf_polarity[norm[idx]] += 1
         if ck:
             self.concept_uses[ck] = self.concept_uses.get(ck, 0) + 1
         self.items.append({"qtype": qtype, "prompt": prompt_c, "choices": choices_c,
@@ -737,6 +796,16 @@ class LessonQuestions:
         """Term-only lessons: "Key Terms" lists written as comma/bullet separated words."""
         terms, lines = [], [l.strip() for l in re.split(r"\n", self.md or "") if l.strip()]
         for line in lines:
+            # a line of bolded items ("**pull out** — withdraw/retreat · **pull over** — ...")
+            # lists the terms in bold; use exactly those
+            bolds = re.findall(r"\*\*([^*]{2,44}?)\*\*", line)
+            if len(bolds) >= 3:
+                for b in bolds:
+                    t = clean_term(b)
+                    if term_ok(t) and len(t.split()) <= 4 and not re.match(r"^[a-z]", t) is None or True:
+                        if term_ok(t) and len(t.split()) <= 4:
+                            terms.append(t)
+                continue
             line = re.sub(r"^[-*•]\s*", "", line)
             line = re.sub(r"^#+\s*", "", line)
             if line.endswith(":") or len(line) < 8:
@@ -748,7 +817,9 @@ class LessonQuestions:
                     continue
                 if re.search(r"\b(is|are|was|were|has|have|provides?|gives?|means|includes?|refers?)\b", t, re.I):
                     continue
-                if re.match(r"^[a-z]", t) or t.endswith(("nour", "pro", "con")) and len(t) < 8:
+                if re.match(r"^[a-z]", t) and len(t.split()) < 2:
+                    continue          # a lone lowercase word is a fragment; a phrase is a term
+                if t.endswith(("nour", "pro", "con")) and len(t) < 8:
                     continue
                 terms.append(t)
         out, seen = [], set()
@@ -757,11 +828,14 @@ class LessonQuestions:
                 continue
             seen.add(t.lower())
             out.append(t)
-        if len(out) < 8:
+        if len(out) < 3:
             return []
-        looks_like_list = (len(self.sents) <= 4) or ("key term" in self.lesson["title"].lower())
-        if "key term" not in self.lesson["title"].lower() and len(self.sents) > 4:
+        # only genuine key-term/glossary lessons: elsewhere these questions just ask whether
+        # an arbitrary word from another lesson happens to appear here
+        title_low = self.lesson["title"].lower()
+        if not any(w in title_low for w in ("key term", "glossary", "vocabulary", "term list")):
             return []
+        looks_like_list = True
         avg_len = sum(len(t) for t in out) / len(out)
         return out if looks_like_list and avg_len <= 30 else []
 
@@ -802,6 +876,10 @@ class LessonQuestions:
 
     def strategy_keyterm_tf(self, want):
         terms = self.keyterm_list()
+        if not terms:
+            # not a key-term lesson: the "outsider" fallback below would otherwise fill the
+            # assessment with "X is not a key term" items that test nothing useful
+            return 0
         made = 0
         for t in terms:
             if made >= want:
@@ -823,6 +901,39 @@ class LessonQuestions:
                          "False — “%s” is not in this lesson's key-term list." % t,
                          self.lesson["title"], "Medium"):
                 made += 1
+        return made
+
+    def strategy_fallback_cloze(self, want):
+        """Last resort for very thin lessons (a single instruction or activity line):
+        complete a statement from the lesson by choosing the missing word."""
+        made = 0
+        pool = self.corpus.words(self.lid, 60)
+        for s in self.sents:
+            if made >= want:
+                break
+            body = s.strip()
+            if len(body) < 40 or body.endswith("?"):
+                continue
+            words = [w for w in re.findall(r"[A-Za-z][A-Za-z\-]{5,}", body)]
+            random.shuffle(words)
+            for w in words:
+                if made >= want:
+                    break
+                if w.lower() in SKIP_START or w.lower() in ("knowledge",):
+                    continue
+                if re.search(r"\b" + re.escape(w) + r"\b.*\b" + re.escape(w) + r"\b", body, re.I):
+                    continue                       # the word appears twice -> ambiguous
+                blanked = re.sub(r"\b" + re.escape(w) + r"\b", "______", body, count=1, flags=re.I)
+                wrongs = [x for x in pool if x not in self.body_tokens or True][:40]
+                wrongs = [x for x in random.sample(wrongs, min(40, len(wrongs)))
+                          if x.lower() != w.lower() and not re.search(r"\b" + re.escape(x) + r"\b", body, re.I)]
+                if len(wrongs) < 3:
+                    continue
+                choices, idx = self.order(w, random.sample(wrongs, 3))
+                if self.push("mcq", "Complete the statement from the lesson:\n“%s”" % fit(blanked, 190),
+                             choices, idx, "The lesson reads: “%s”" % body,
+                             self.lesson["title"], "Medium"):
+                    made += 1
         return made
 
     def strategy_altered_mcq(self, want):
@@ -911,6 +1022,7 @@ class LessonQuestions:
         if need <= 0:
             return []
         # ~3 true/false items per lesson, the rest spread over the other strategies
+        self.polarity_cap = max(3, need // 2)   # no single answer may dominate
         want_tf = 3 if need >= 6 else max(1, need // 3)
         self.strategy_tf(max(1, want_tf - 1), max(1, want_tf - 2))
         plan = [("strategy_definitions", 3), ("strategy_cloze", 2), ("strategy_reverse", 1),
@@ -932,7 +1044,7 @@ class LessonQuestions:
         # still rejects duplicate prompts and invalid choices.
         cap = self.concept_cap
         while len(self.items) < need and cap <= 8:
-            self.concept_cap = cap
+            self.concept_cap = cap        # polarity cap deliberately NOT relaxed here
             before = len(self.items)
             self.strategy_bullet_tf(3, 3)
             self.strategy_keyterms(4)
@@ -944,6 +1056,7 @@ class LessonQuestions:
             self.strategy_definitions(4)
             self.strategy_worked(3)
             self.strategy_list(2)
+            self.strategy_fallback_cloze(4)
             if len(self.items) == before:      # this cap is exhausted -> allow more repeats
                 cap += 1
         return self.items[:need]
