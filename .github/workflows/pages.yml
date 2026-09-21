@@ -1,0 +1,44 @@
+# Publishes the static course site in docs/ to GitHub Pages.
+#
+# Runs on every push that touches docs/, so the phone-friendly site stays in step
+# with the content. `enablement: true` lets the first run switch Pages on by itself,
+# which matters when nobody can reach the repository's Settings page.
+name: Publish course site
+
+on:
+  push:
+    branches: [ "arena/01a0b4b5-edulearn-platform", main ]
+    paths: [ "docs/**", ".github/workflows/pages.yml" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure Pages (creates the site on first run)
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
