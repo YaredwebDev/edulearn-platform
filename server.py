@@ -308,6 +308,109 @@ def lesson_view(request: Request, lid: int):
         "quiz_count": qcnt,
     })
 
+# ------------------------------------------------------- downloadable notes
+NOTES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "notes")
+
+def _notes_files():
+    """The uploaded study-notes files, with the subject each one belongs to."""
+    out = []
+    if not os.path.isdir(NOTES_DIR):
+        return out
+    for name in sorted(os.listdir(NOTES_DIR)):
+        if not name.lower().endswith((".html", ".htm", ".md", ".txt", ".docx", ".pdf", ".zip")):
+            continue
+        path = os.path.join(NOTES_DIR, name)
+        stem = os.path.splitext(name)[0]
+        grade = None
+        m = re.search(r"(?:grade|g)\s*(9|10|11|12)", stem, re.I)
+        if m:
+            grade = int(m.group(1))
+        subject = stem.split("_")[0].strip().title() if "_" in stem else ""
+        out.append({"name": name, "grade": grade, "subject": subject,
+                    "size": os.path.getsize(path),
+                    "url": "/api/notes/" + name})
+    return out
+
+@app.get("/api/notes")
+def notes_index(request: Request, grade: int = None, subject_id: int = None):
+    u = current_user(request)
+    files = _notes_files()
+    if subject_id:
+        subj = db.query("SELECT name, grade FROM subjects WHERE id=?", (subject_id,), one=True)
+        if subj:
+            stem = subj["name"].lower()[:4]
+            files = [f for f in files
+                     if f["subject"].lower().startswith(stem) and f["grade"] == subj["grade"]]
+    elif grade:
+        files = [f for f in files if f["grade"] == grade]
+    for f in files:                       # keep the subject's own grade first
+        f["match"] = True
+    return jsonok({"files": files})
+
+@app.get("/api/notes/{name}")
+def notes_download(request: Request, name: str):
+    """Serve one notes file for download. Only plain names inside notes/ are allowed."""
+    u = current_user(request)
+    safe = os.path.basename(name)
+    path = os.path.join(NOTES_DIR, safe)
+    if not os.path.isfile(path):
+        return fail("File not found", 404)
+    media = "text/html" if safe.lower().endswith((".html", ".htm")) else "application/octet-stream"
+    with open(path, "rb") as fh:
+        blob = fh.read()
+    return Response(content=blob, media_type=media,
+                    headers={"Content-Disposition": 'attachment; filename="%s"' % safe})
+
+# ---------------------------------------------------------------- AI tutor ("Ask")
+_chat_ready = {"built": False}
+
+def _ensure_chat_index():
+    """Build the search index once, on first use (keeps start-up fast)."""
+    if _chat_ready["built"]:
+        return
+    try:
+        import chat
+        chat.ensure_tables()
+        have = db.query("SELECT count(*) n FROM lesson_fts", one=True)["n"]
+        lessons = db.query("SELECT count(*) n FROM lessons", one=True)["n"]
+        if have != lessons:
+            chat.build_index(verbose=False)
+        _chat_ready["built"] = True
+    except Exception as e:
+        print("chat index error:", e)
+
+@app.post("/api/chat")
+async def chat_ask(request: Request):
+    """Ask a question; the answer is taken from the student's own notes, with citations."""
+    u = current_user(request)
+    body = await request.json()
+    q = (body.get("question") or "").strip()
+    if len(q) < 3:
+        return fail("Please type a question.")
+    if len(q) > 400:
+        return fail("That question is too long — please shorten it.")
+    try:
+        import chat
+        _ensure_chat_index()
+        grade = body.get("grade") or u.get("grade")
+        subject_id = body.get("subject_id")
+        res = chat.ask(q, grade=grade, subject_id=subject_id)
+        return jsonok(res)
+    except Exception as e:
+        return fail("The tutor is unavailable right now (%s)." % e, 503)
+
+@app.get("/api/chat/status")
+def chat_status(request: Request):
+    u = current_user(request)
+    _ensure_chat_index()
+    try:
+        import chat
+        n = db.query("SELECT count(*) n FROM lesson_fts", one=True)["n"]
+        return jsonok({"ok": True, "lessons_indexed": n,
+                       "provider": (os.environ.get("CHAT_PROVIDER") or "off")})
+    except Exception as e:
+        return jsonok({"ok": False, "error": str(e)})
+
 @app.get("/api/lesson/{lid}/quiz")
 def lesson_quiz(request: Request, lid: int):
     u = current_user(request)

@@ -31,7 +31,7 @@ function topbar(user){
     <div class="brand"><div class="logo">EL</div>EduLearn</div>
     <nav class="navlinks">
       <a href="#/">Home</a>
-      ${user?`<a href="#/dashboard">Dashboard</a><a href="#/certs">Certificates</a>
+      ${user?`<a href="#/dashboard">Dashboard</a><a href="#/ask">Ask</a><a href="#/certs">Certificates</a>
       <a href="#/verify">Verify</a><button class="navbtn" onclick="goLogout()">Log out</button>`
       :`<a href="#/verify">Verify a certificate</a><a class="btn btn-primary" href="#/register">Start Learning</a>`}
     </nav></div></header>`;
@@ -237,6 +237,7 @@ async function viewSubject(id){
   const flatLessons=d.units.reduce((acc,un)=>acc.concat(un.lessons),[]);
   const nextLesson=flatLessons.find(l=>l.status!=='Completed');
   const doneCount=d.progress?d.progress.lessons_done:0;
+  const notesBtn=`<button class="btn btn-ghost" style="margin-top:14px" onclick="downloadNotes(${id},'${esc(d.subject.name)}')">⬇ Download the notes</button>`;
   const resumeBtn=nextLesson?`<button class="btn btn-primary" style="margin-top:14px" onclick="location.hash='#/lesson/${nextLesson.id}'">
     ${doneCount?'Continue where you left off':'Start learning'} — ${esc(nextLesson.title)} →</button>`
     :`<div class="muted" style="margin-top:12px">All lessons complete — take the final examination below.</div>`;
@@ -266,7 +267,7 @@ async function viewSubject(id){
     <div class="card mt16" style="padding:14px 18px"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <div style="font-weight:700">Subject progress</div><div style="flex:1;max-width:300px"><div class="pbar"><div class="pfill blue" style="width:${d.progress?pct(d.progress.lessons_done,d.progress.lessons_total):0}%"></div></div></div>
       <span class="muted">${d.progress?d.progress.lessons_done+'/'+d.progress.lessons_total+' lessons · '+d.progress.units_done+'/'+d.progress.units_total+' units':''}</span></div>
-      ${resumeBtn}
+      ${resumeBtn}${notesBtn}
       ${examBtn}</div>
     <div class="unitlist mt24">${units}</div>
     <div class="card mt16"><b>Option B — Get the whole subject as a study pack</b>
@@ -507,6 +508,70 @@ async function doVerify(){
   }else{vr.innerHTML=`<div class="card" style="border:2px solid var(--danger)"><b>✕ Not found</b><p class="muted">No certificate matches this ID. Please double-check the ID.</p></div>`;}
 }
 
+
+
+/* download the original notes file for a subject */
+async function downloadNotes(sid,sname){
+  try{
+    const d=await api('/api/notes?subject_id='+sid);
+    const f=(d.files||[])[0];
+    if(!f){alert('No notes file found for '+sname+'.');return;}
+    const a=document.createElement('a');
+    a.href='/api/notes/'+encodeURIComponent(f.name);
+    a.download=f.name;document.body.appendChild(a);a.click();a.remove();
+  }catch(e){alert(e.message||'Could not download the notes.');}
+}
+
+/* ============================ ASK (grounded tutor) ============================ */
+async function viewAsk(){
+  if(!guard())return;
+  const u=currentUser();
+  $app.innerHTML=`${topbar(u)}<div class="wrap">
+    <div class="card" style="margin-top:18px">
+      <h3 style="margin-top:0">Ask your notes</h3>
+      <p class="muted" style="margin-top:0">Answers come only from your notes, with the lesson they came from.
+      If something is not in your notes, the tutor says so instead of guessing.</p>
+      <div class="field">
+        <textarea class="input" id="askq" rows="2" placeholder="e.g. what is the difference between mitosis and meiosis?"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="askSend()">Ask</button>
+      <span class="ok" id="askres"></span>
+    </div>
+    <div id="askout"></div>
+  </div>`;
+  const el=document.getElementById('askq');
+  if(el)el.focus();
+}
+
+async function askSend(){
+  const box=document.getElementById('askq');
+  const q=(box?.value||'').trim();
+  const out=document.getElementById('askout');
+  const res=document.getElementById('askres');
+  if(q.length<3){if(res)res.textContent='Type a question first.';return;}
+  if(res)res.textContent='Searching your notes…';
+  const u=currentUser()||{};
+  try{
+    const d=await api('/api/chat',{method:'POST',body:{question:q,grade:u.grade}});
+    if(res)res.textContent='';
+    if(d.not_covered){
+      out.innerHTML=`<div class="card" style="border-left:6px solid var(--amber)">
+        <b>Not covered in your notes</b>
+        <p class="muted" style="margin:6px 0">I couldn't find this in your notes. Try asking it a different way,
+        or check the lesson list for the topic.</p></div>`+out.innerHTML;
+      return;
+    }
+    const cites=(d.sources||[]).map(s=>`<div class="lesson" style="margin-top:6px" onclick="location.hash='#/lesson/${s.lesson_id}'">
+        <b>${esc(s.lesson)}</b><div class="muted" style="font-size:13px">${esc(s.unit)} · ${esc(s.subject)} · Grade ${s.grade} · tap to open</div></div>`).join('');
+    out.innerHTML=`<div class="card" style="margin-top:14px">
+        <div class="muted" style="font-size:13px;margin-bottom:6px">You asked: ${esc(q)}</div>
+        <div style="white-space:pre-wrap;line-height:1.6">${esc(d.answer||'')}</div>
+        <h4 style="margin-bottom:4px">Where this came from</h4>${cites}</div>`+out.innerHTML;
+  }catch(e){
+    if(res)res.textContent=e.message||'Something went wrong.';
+  }
+}
+
 /* ============================ ROUTER ============================ */
 async function route(){
   const h=location.hash||'#/';
@@ -519,6 +584,7 @@ async function route(){
     if(parts[0]==='dashboard')return viewDashboard();
     if(parts[0]==='notifications')return viewNotifications();
     if(parts[0]==='certs')return viewCerts();
+    if(parts[0]==='ask')return viewAsk();
     if(parts[0]==='subject')return viewSubject(+parts[1]);
     if(parts[0]==='lesson')return viewLesson(+parts[1],parts[2]);
     if(parts[0]==='exam')return viewExam(+parts[1]);
@@ -784,4 +850,4 @@ document.addEventListener('DOMContentLoaded', ()=>route());
 Object.assign(window,{goLogout,doReg,doLogin,lessonTab,loadFlash,flipCard,fcNext,fcPrev,
   chooseQ,quizNav,submitQuiz,examChoose,examNav,examSubmit,doVerify,readNotif,
   doAdminVerify,downloadUnit,searchStudents,loadAdminQs,admApprove,admReject,admDeleteQ,
-  admEditQ,admSaveQ,admAddQ,admTree:admTree,admSubTree,sendNotif,naudChange,logoutAdmin});
+  admEditQ,admSaveQ,admAddQ,admTree:admTree,admSubTree,sendNotif,naudChange,logoutAdmin,askSend,viewAsk,downloadNotes});
