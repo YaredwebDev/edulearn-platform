@@ -119,7 +119,7 @@ function viewAuth(mode){
   const f=document.getElementById('authform');
   if(isReg){
     f.innerHTML=`<div class="field"><label>Full Name</label><input class="input" id="fname" placeholder="e.g. Yared Tesfaye"></div>
-      <div class="row2"><div class="field"><label>Grade</label><select class="input" id="fgrade"><option>9</option><option>10</option><option>11</option><option>12</option></select></div>
+      <div class="row2"><div class="field"><label>Grade</label><select class="input" id="fgrade"><option>9</option><option>10</option><option>11</option><option value="12">12 (content coming soon)</option></select></div>
       <div class="field"><label>Age</label><input class="input" id="fage" type="number" min="9" max="99" placeholder="16"></div></div>
       <div class="field"><label>Phone Number</label><input class="input" id="fphone" placeholder="+2519XXXXXXXX"></div>
       <div class="field"><label>School</label><input class="input" id="fschool" placeholder="Your school name"></div>
@@ -158,7 +158,7 @@ async function viewDashboard(){
       <div style="flex:1"><div style="font-weight:600">${esc(a.label)}</div><div class="muted" style="font-size:12px">${a.percent}% · ${timeAgo(a.submitted_at)}</div></div></div></div>`).join('')||'<p class="muted">No assessments yet — start a lesson!</p>';
   const certs=d.certificates.map(c=>certCard(c)).join('')||'';
   const notifs=d.notifications.map(notifCard).join('');
-  const subjects=d.subjects.map(s=>`
+  const subjects=d.subjects.length?d.subjects.map(s=>`
     <div class="card click" onclick="location.hash='#/subject/${s.id}'">
       <div style="display:flex;align-items:center;gap:10px">
         <div class="ic icon">${icon(s.code)}</div>
@@ -166,7 +166,12 @@ async function viewDashboard(){
         ${statusPill(s.status)}</div>
       <div style="margin-top:10px"><div class="pbar"><div class="pfill blue" style="width:${s.pct}%"></div></div>
       <div class="muted" style="font-size:12px;margin-top:4px">${s.lessons_done}/${s.lessons_total} lessons · ${s.pct}%</div></div>
-    </div>`).join('');
+    </div>`).join(''):`<div class="card" style="border-left:6px solid var(--amber)">
+      <b>Grade ${u.grade} lessons are still being prepared</b>
+      <p class="muted" style="margin:6px 0">Your account is ready, and everything you complete is saved.
+      The subjects for Grade ${u.grade} are not published yet — they are being added now.
+      In the meantime you can switch to a grade that is ready, or check back soon.</p>
+      <button class="btn btn-primary" onclick="location.hash='#/notifications'">See announcements</button></div>`;
 
   $app.innerHTML = `${topbar(u)}
   <div class="wrap" style="padding-top:22px;padding-bottom:40px">

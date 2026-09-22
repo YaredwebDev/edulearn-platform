@@ -58,7 +58,10 @@ def strip_md(s):
 
 
 def clean_term(t):
-    t = strip_md(t).strip(" \t.:;,-–—•*`\"'[]")
+    t = strip_md(t)
+    # drop paragraph / figure references ("scheme (¶1)", "osmosis (para 3)")
+    t = re.sub(r"\s*[\(\[]\s*(?:¶|para\.?|page|p\.|fig\.?)\s*\d+[\s\w]*[\)\]]", "", t, flags=re.I)
+    t = t.strip(" \t.:;,-–—•*`\"'[]")
     t = re.sub(r"\s+", " ", t)
     if t.count("(") != t.count(")"):                           # unbalanced "(SI" -> cut it off
         t = t[:t.index("(")] if "(" in t else t.replace(")", "")
@@ -150,7 +153,9 @@ def sentences(md):
             continue
         if len(body) <= 300 and not body.endswith((".", "!", ":", "?", ";")):
             pass
-        for s in re.split(r"(?<=[.!?])\s+(?=[A-Z0-9\"'(])", body):
+        # split compound statements at ";" too, so each question tests one idea
+        # ("F = ma; 1 N = 1 m/s²." becomes two clear statements)
+        for s in re.split(r"(?<=[.!?])\s+(?=[A-Z0-9\"'(])|;\s+(?=[A-Z0-9\"'(])", body):
             s = strip_md(s).strip()
             if 22 <= len(s) <= 300:
                 out.append(s)
@@ -245,6 +250,98 @@ TABLE_HEADER = {"branch", "field", "description", "what it studies", "term", "de
                 "properties", "structure", "function(s)", "explanation", "notes"}
 
 
+
+# --- markdown tables -------------------------------------------------------
+# The notes are full of tables, often with three or four columns
+# ("| # | Scientist | Dates | Key contribution" / "| Word | Meaning | Example").
+# A two-column-only reader silently loses all of them.
+_TERM_HDR = re.compile(r"\b(word|term|name|branch|field|step|stage|scientist|quantity|symbol|"
+                       r"item|process|organism|type|substance|element|structure|feature|concept|"
+                       r"law|formula|unit|reagent|compound|organ|disease|nutrient|tool|machine|"
+                       r"part|stage/phase|country|year|event|person|discoverer)\b", re.I)
+_DEF_HDR = re.compile(r"\b(meaning|definition|description|what it studies|studies|function|"
+                      r"key contribution|contribution|explanation|role|purpose|use|effect|"
+                      r"importance|properties|characteristics)\b", re.I)
+_SKIP_HDR = re.compile(r"\b(example|context|remark|note|figure|source|page)\b", re.I)
+
+
+def _is_table_line(line):
+    t = line.strip()
+    return t.startswith("|") and t.count("|") >= 2
+
+
+def _cells(line):
+    t = line.strip().strip("|")
+    return [c.strip() for c in t.split("|")]
+
+
+def _is_separator(cells):
+    return bool(cells) and all(re.fullmatch(r":?-{2,}:?", c or "-") for c in cells if c) \
+        and any(cells)
+
+
+def _header_roles(cells):
+    roles = []
+    for c in cells:
+        t = strip_md(c)
+        if _TERM_HDR.search(t):
+            roles.append("term")
+        elif _DEF_HDR.search(t):
+            roles.append("def")
+        elif _SKIP_HDR.search(t):
+            roles.append("skip")
+        else:
+            roles.append("")
+    return roles
+
+
+def table_pairs(md):
+    """Extract (term, definition, raw) from every markdown table in the lesson."""
+    out, lines = [], (md or "").split("\n")
+    i = 0
+    while i < len(lines):
+        if not _is_table_line(lines[i]):
+            i += 1
+            continue
+        block = []
+        while i < len(lines) and _is_table_line(lines[i]):
+            block.append(lines[i])
+            i += 1
+        rows = [_cells(b) for b in block]
+        rows = [r for r in rows if not _is_separator(r)]
+        if len(rows) < 2:
+            continue
+        roles = _header_roles(rows[0])
+        has_header = any(r in ("term", "def") for r in roles)
+        body = rows[1:] if has_header else rows
+        for r in body:
+            if not r or len(r) < 2:
+                continue
+            cells = r
+            if has_header and len(roles) == len(cells):
+                terms = [c for c, role in zip(cells, roles) if role == "term"]
+                defs = [c for c, role in zip(cells, roles) if role == "def"]
+                skips = {j for j, role in enumerate(roles) if role == "skip"}
+                if not terms:                      # unrecognised layout -> first cell is the term
+                    terms = cells[:1]
+                if not defs:
+                    defs = [c for j, c in enumerate(cells) if j not in skips and c not in terms]
+                term = " ".join(terms).strip() or cells[0]
+                defn = " ".join(d for d in defs if d).strip()
+            else:
+                term, defn = cells[0], " ".join(cells[1:])
+            term, defn = clean_term(term), clean_defn(defn)
+            # a leading index column ("1", "#", "a)") is not a term
+            if not term or re.fullmatch(r"[#\d]+[.)]?", term):
+                if len(cells) > 2:
+                    term, defn = clean_term(cells[1]), clean_defn(" ".join(cells[2:]))
+            if term and defn and term_ok(term) and defn_ok(defn):
+                if SEP in term or term.endswith(":"):
+                    continue
+                out.append((term, defn, " | ".join(cells)))
+    return out
+
+
 def extract_pairs(md):
     """Return [(term, definition, raw)] mined from one lesson's markdown."""
     pairs, seen = [], set()
@@ -259,20 +356,12 @@ def extract_pairs(md):
         seen.add(key)
         pairs.append((term, defn, strip_md(raw)))
 
+    for term, defn, raw in table_pairs(md):        # tables first: they carry the definitions
+        add(term, defn, raw)
     lines = re.split(r"\n", md or "")
     for idx, raw_line in enumerate(lines):
         line = raw_line.strip()
-        if not line or line.startswith("#"):
-            continue
-        # ---- markdown table rows: most of these notes are tables ----
-        tm = TABLE_ROW.match(line)
-        if tm:
-            term, defn = tm.group("t").strip(), tm.group("d").strip()
-            nxt = lines[idx + 1].strip() if idx + 1 < len(lines) else ""
-            is_header = (term.lower() in TABLE_HEADER or defn.lower() in TABLE_HEADER
-                         or bool(TABLE_SEP.match(nxt)))
-            if not is_header and SEP not in term and not term.endswith(":"):
-                add(term, defn, line)
+        if not line or line.startswith("#") or _is_table_line(line):
             continue
         candidates = [line] + ([strip_md(line)] if "**" in line else [])
         matched = False
@@ -434,6 +523,19 @@ def _looks_plural(term):
     return t.endswith("s")
 
 
+
+
+def _table_shaped(t):
+    """True when a string is really an unparsed table row rather than maths or prose."""
+    t = (t or "").strip()
+    if not t:
+        return False
+    if t.startswith("|") and t.endswith("|") and t.count("|") >= 3:
+        return True
+    if t.count("|") >= 3:
+        return True
+    return "↔" in t
+
 def _agrees(term, verb):
     """False when subject and verb disagree in number: 'Biology are', 'Living things is'."""
     v = (verb or "").strip().lower().strip(".,;:\u201c\u201d\"'")
@@ -491,9 +593,11 @@ class LessonQuestions:
         prompt_c = re.sub(r"\s{2,}", " ", prompt_c).strip()
         choices_c = [re.sub(r"\s{2,}", " ", re.sub(r"\*+", "", strip_md(str(c)))).strip() for c in choices]
         why_c = re.sub(r"\s{2,}", " ", re.sub(r"\*+", "", strip_md(str(why)))).strip()
-        if any(("→" in c or "↔" in c or "|" in c or "**" in c) for c in choices_c):
+        # reject unparsed table debris and stray markdown, but let maths through:
+        # "|k| < c" (absolute value) and "→" (implies) are legitimate in a maths lesson.
+        if any(_table_shaped(c) or "**" in c for c in choices_c):
             return False
-        if "|" in prompt_c or "**" in prompt_c:
+        if _table_shaped(prompt_c) or "**" in prompt_c:
             return False
         if prompt_c[:14].lower().startswith("true or false"):
             stmt = prompt_c.split(":", 1)[-1].strip()
@@ -936,6 +1040,47 @@ class LessonQuestions:
                     made += 1
         return made
 
+    def strategy_foreign_mcq(self, want):
+        """For thin lessons only: recognise a statement that really comes from THIS lesson.
+
+        The correct option is a sentence of this lesson; the distractors are sentences from
+        other lessons of the same subject, verified absent from this lesson — so the answer
+        is unambiguous and nothing is invented.
+        """
+        made = 0
+        own = [q for q in self.sents if 40 <= len(q) <= 170 and "?" not in q]
+        if not own:
+            return 0
+        foreign = []
+        for lid, pairs in self.corpus.by_lesson.items():
+            if lid == self.lid:
+                continue
+            for _t, d, _raw, _title in pairs:
+                if 40 <= len(d) <= 170 and not self.in_lesson(d):
+                    foreign.append(d)
+        random.shuffle(own)
+        random.shuffle(foreign)
+        for stmt in own:
+            if made >= want or len(foreign) < 3:
+                break
+            picked, seen = [], set()
+            for f in foreign:
+                k = f.lower()[:60]
+                if k in seen:
+                    continue
+                seen.add(k)
+                picked.append(f)
+                if len(picked) == 3:
+                    break
+            if len(picked) < 3:
+                break
+            choices, idx = self.order(stmt, picked)
+            if self.push("mcq", "According to this lesson, which statement is correct?",
+                         choices, idx, "This lesson states: “%s”" % stmt,
+                         self.lesson["title"], "Hard"):
+                made += 1
+        return made
+
     def strategy_altered_mcq(self, want):
         """A statement from the lesson as the only correct option; the other options are
         the same statement with one value or term changed, so they are certainly false."""
@@ -1056,6 +1201,7 @@ class LessonQuestions:
             self.strategy_definitions(4)
             self.strategy_worked(3)
             self.strategy_list(2)
+            self.strategy_foreign_mcq(3)
             self.strategy_fallback_cloze(4)
             if len(self.items) == before:      # this cap is exhausted -> allow more repeats
                 cap += 1
@@ -1075,6 +1221,29 @@ def ensure_flashcards(lesson_id, md, limit=12):
         db.execute("INSERT INTO flashcards(lesson_id,front,back,sort) VALUES(?,?,?,?)",
                    (lesson_id, term, fit(defn, 230), made))
         made += 1
+    # Lessons with no term/definition pairs (formulas, lists, single instructions) would
+    # otherwise show an empty Flashcards tab. Fall back to cloze cards from the lesson text.
+    if made < 3:
+        for s in sentences(md):
+            if made >= limit:
+                break
+            words = [w for w in re.findall(r"[A-Za-z][A-Za-z\-]{5,}", s) if len(w) >= 6]
+            random.shuffle(words)
+            for w in words:
+                if made >= limit:
+                    break
+                if w.lower() in SKIP_START or w.lower() in seen:
+                    continue
+                if re.search(r"\b" + re.escape(w) + r"\b.*\b" + re.escape(w) + r"\b", s, re.I):
+                    continue
+                blanked = re.sub(r"\b" + re.escape(w) + r"\b", "______", s, count=1, flags=re.I)
+                if blanked == s or len(blanked) > 240:
+                    continue
+                seen.add(w.lower())
+                db.execute("INSERT INTO flashcards(lesson_id,front,back,sort) VALUES(?,?,?,?)",
+                           (lesson_id, blanked, w, made))
+                made += 1
+                break
     return made
 
 
