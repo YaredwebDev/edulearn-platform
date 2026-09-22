@@ -39,9 +39,10 @@ def head(title, rel="..", desc=""):
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{esc(title)} · EduLearn</title>
-<meta name="description" content="{esc(desc)}">
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+<meta name="theme-color" content="#2e54d4">
+<meta name="description" content="{esc(desc or "Ethiopian secondary school lessons, assessments and flashcards — lesson by lesson, free on any phone.")}">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%232e54d4'/><text x='32' y='44' font-family='Helvetica,Arial,sans-serif' font-size='30' font-weight='700' fill='%23fff' text-anchor='middle'>EL</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%232e54d4'/><text x='32' y='44' font-family='Helvetica,Arial,sans-serif' font-size='30' font-weight='700' fill='%23fff' text-anchor='middle'>EL</text></svg>">
 <link rel="stylesheet" href="{rel}/assets/style.css">
 <script>try{{const m=document.cookie.match(/el_theme=([a-z]+)/);if(m&&m[1]==='dark')document.documentElement.dataset.theme='dark';}}catch(e){{}}</script>
 </head><body>
@@ -157,7 +158,7 @@ def build_index(out):
   </div>
 </div></section>'''
     with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as fh:
-        fh.write(head("Grade 9–11 courses", ".", "Lesson-by-lesson courses with quizzes") + body + foot("."))
+        fh.write(head("Grade 9–11 courses", ".", "Every Ethiopian secondary school lesson for Grades 9–11, each with its own assessment and flashcards. Free, phone-first, no account needed.") + body + foot("."))
     return total_l, total_q
     with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as fh:
         fh.write(head("Grade 9–11 courses", ".", "Lesson-by-lesson courses with quizzes") + body + foot("."))

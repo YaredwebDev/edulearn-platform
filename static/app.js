@@ -82,7 +82,7 @@ async function viewLanding(){
     return `<div class="card click gradepick" onclick="goGrade(${g})">
       <div class="gradepick-head"><span class="gradepick-num">${g}</span><div>
         <h3 style="margin:0">Grade ${g}</h3>
-        <div class="muted" style="font-size:12.5px">${list.length?list.length+' subjects':'Not available yet'}</div></div></div>
+        <div class="muted" style="font-size:12.5px">${list.length?list.length+(list.length===1?' subject':' subjects'):'Not available yet'}</div></div></div>
       <div style="margin-top:14px;display:flex;gap:6px;flex-wrap:wrap">${names}</div>
     </div>`;
   }).join('');
@@ -114,8 +114,8 @@ async function viewLanding(){
   </div></section>
 
   <div class="truststrip"><div class="wrap">
-    <div class="trustitem"><b>${nums(st.lessons)}</b><span>lessons</span></div>
     <div class="trustitem"><b>${nums(st.subjects)}</b><span>subjects</span></div>
+    <div class="trustitem"><b>${nums(st.lessons)}</b><span>lessons</span></div>
     <div class="trustitem"><b>${nums(st.questions)}</b><span>practice questions</span></div>
     <div class="trustitem"><b>${nums(st.flashcards)}</b><span>flashcards</span></div>
   </div></div>
@@ -137,7 +137,7 @@ async function viewLanding(){
       <div class="step4"><div class="step-num">1</div><b>Register</b><p>Your name, grade, school and phone number. It takes one minute.</p></div>
       <div class="step4"><div class="step-num">2</div><b>Choose a subject</b><p>Biology, Chemistry, Physics, Mathematics or English — unit by unit.</p></div>
       <div class="step4"><div class="step-num">3</div><b>Learn and practise</b><p>Read the lesson, take its questions, revise with flashcards, and repeat until you pass.</p></div>
-      <div class="step4"><div class="step-num">4</div><b>Sit the final exam</b><p>Finish every unit to unlock a 125-question examination. Score 100 to earn your certificate.</p></div>
+      <div class="step4"><div class="step-num">4</div><b>Sit the final exam</b><p>Finish every unit to unlock a 125-question examination. Score 100 or more to earn your certificate.</p></div>
     </div>
   </div></section>
 
