@@ -116,8 +116,15 @@ class LoginModel(BaseModel):
 def meta():
     """Public catalogue: what subjects exist per grade, plus honest headline numbers."""
     grades = {}
-    for r in db.query("SELECT grade, code, name FROM subjects ORDER BY grade, sort, id"):
-        grades.setdefault(r["grade"], []).append({"code": r["code"], "name": r["name"]})
+    rows = db.query("""SELECT s.id, s.grade, s.code, s.name,
+                          (SELECT count(*) FROM units u WHERE u.subject_id=s.id) units,
+                          (SELECT count(*) FROM lessons l JOIN units u ON l.unit_id=u.id
+                             WHERE u.subject_id=s.id) lessons
+                       FROM subjects s ORDER BY s.grade, s.sort, s.id""")
+    for r in rows:
+        grades.setdefault(r["grade"], []).append(
+            {"id": r["id"], "code": r["code"], "name": r["name"],
+             "units": r["units"], "lessons": r["lessons"]})
     stats = db.query("""SELECT
         (SELECT count(*) FROM subjects)  subjects,
         (SELECT count(*) FROM lessons)   lessons,
@@ -125,6 +132,29 @@ def meta():
         (SELECT count(*) FROM flashcards) flashcards""", one=True)
     return jsonok({"grades": {str(k): v for k, v in sorted(grades.items())},
                    "stats": stats, "grades_available": sorted(grades.keys())})
+
+@app.on_event("startup")
+def _canonical_phone_tidy():
+    """Store every phone in one canonical form so logins work whichever way a
+    student types their number. Never merges two accounts: if two rows would
+    become the same number, both are left untouched."""
+    try:
+        rows = db.query("SELECT id, phone FROM users WHERE phone IS NOT NULL AND phone<>''")
+        canon = {r["id"]: security.normalize_phone(r["phone"]) for r in rows}
+        counts = {}
+        for c in canon.values():
+            counts[c] = counts.get(c, 0) + 1
+        changed = 0
+        for r in rows:
+            c = canon[r["id"]]
+            if not c or c == r["phone"] or counts.get(c, 0) > 1:
+                continue
+            db.execute("UPDATE users SET phone=? WHERE id=?", (c, r["id"]))
+            changed += 1
+        if changed:
+            print("phone tidy: %d account(s) stored in canonical form" % changed)
+    except Exception as e:
+        print("phone tidy skipped:", e)
 
 @app.get("/api/health")
 def health():
@@ -137,14 +167,22 @@ def register(p: RegModel):
         return fail("Enter your full name (min 3 characters).")
     if p.grade not in (9, 10, 11, 12):
         return fail("Grade must be 9, 10, 11 or 12.")
-    phone = (p.phone or "").strip()
+    phone = security.normalize_phone(p.phone)
     if not security.is_valid_phone(phone):
-        return fail("Enter a valid phone number.")
+        return fail("Enter a valid phone number, e.g. 0911223344.")
     if len((p.password or "")) < 6:
         return fail("Password must be at least 6 characters.")
-    exists = db.query("SELECT id FROM users WHERE phone=?", (phone,), one=True)
+    exists = db.query("SELECT * FROM users WHERE phone=?", (phone,), one=True)
     if exists:
-        return fail("An account with this phone number already exists. Please log in.")
+        # The number is already registered. If the password matches, this is the
+        # same student trying again (a double tap, or a page that lost its saved
+        # session) — sign them in instead of leaving them stuck on an error.
+        if security.verify_password(p.password, exists["salt"], exists["pwd_hash"]) and exists["role"] == "student":
+            print("register: existing number, password matched -> signed in  ****%s" % phone[-4:])
+            return jsonok({"token": security.sign({"uid": exists["id"], "role": "student"}),
+                           "user": public_user(exists["id"]), "existing": True})
+        print("register: number already registered, password did not match  ****%s" % phone[-4:])
+        return fail("An account with this phone number already exists. Log in with your password instead.", 409)
     hp = security.hash_password(p.password)
     uid = db.execute("INSERT INTO users(full_name,grade,phone,age,school,role,pwd_hash,salt,created_at) "
                      "VALUES(?,?,?,?,?,?,?,?,?)",
@@ -162,7 +200,9 @@ def register(p: RegModel):
 
 @app.post("/api/login")
 def login(p: LoginModel):
-    phone = (p.phone or "").strip()
+    phone = security.normalize_phone(p.phone)
+    if not phone:
+        return fail("Enter your phone number.")
     u = db.query("SELECT * FROM users WHERE phone=?", (phone,), one=True)
     if not u:
         return fail("Account not found. Please register first.", 404)
@@ -282,7 +322,8 @@ def subject_view(request: Request, sid: int):
         lessons = []
         for l in db.query("SELECT id,number,title FROM lessons WHERE unit_id=? ORDER BY number", (un["id"],)):
             lp = db.query("SELECT * FROM lesson_progress WHERE user_id=? AND lesson_id=?", (u["id"], l["id"]), one=True)
-            lessons.append({"id": l["id"], "title": l["title"], "status": (lp["status"] if lp else "Not Started"),
+            lessons.append({"id": l["id"], "number": l["number"], "title": l["title"],
+                            "status": (lp["status"] if lp else "Not Started"),
                             "best": (lp["best_score"] if lp else 0)})
         units.append({"id": un["id"], "title": un["title"],
                       "done": (up["lessons_done"] if up else 0), "total": len(lessons),

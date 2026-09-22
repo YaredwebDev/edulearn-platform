@@ -40,7 +40,17 @@ async function api(path,opts={}){
   if(t) opts.headers['Authorization']='Bearer '+t;
   const r=await fetch(path,opts);
   let d={};try{d=await r.json();}catch(e){}
-  if(!r.ok){ const err=d.error||('Request failed ('+r.status+')'); throw new Error(err);}
+  if(!r.ok){
+    const isAuthCall=/\/api\/(login|register)$/.test(path);
+    if(r.status===401 && !isAuthCall){
+      // The saved session is no longer valid (it can be lost when the app runs
+      // inside a preview frame that blocks saved data). Clear it and let the
+      // student sign in again rather than leaving them on a blank error card.
+      lsDel(TOK);lsDel(USR);if(location.hash!=='#/login'){location.hash='#/login';}
+      throw new Error('Please log in to continue.');
+    }
+    const err=d.error||('Request failed ('+r.status+')'); throw new Error(err);
+  }
   return d;
 }
 function money(x){return Number(x||0).toLocaleString();}
@@ -70,109 +80,191 @@ function currentUser(){try{return JSON.parse(lsGet(USR)||'null');}catch(e){retur
 const LETTERS=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
 
 /* ============================ LANDING ============================ */
-async function viewLanding(){
-  let meta={grades:{},stats:{}};try{meta=await api('/api/meta');}catch(e){}
-  const gs=[9,10,11,12];
-  const subjShort={chem:'Chemistry',bio:'Biology',phys:'Physics',engl:'English',math:'Mathematics',agri:'Agriculture'};
-  const st=meta.stats||{};
-  const nums=(n)=>String(n||0).replace(/\B(?=(\d{3})+(?!\d))/g,',');
-  const gradeBlocks = gs.map(g=>{
-    const list=meta.grades[g]||[];
-    const names=list.length?list.map(s=>`<span class="chip chip-dark">${subjShort[s.code]||s.name}</span>`).join(''):'<span class="muted" style="font-size:13px">Coming soon</span>';
-    return `<div class="card click gradepick" onclick="goGrade(${g})">
-      <div class="gradepick-head"><span class="gradepick-num">${g}</span><div>
-        <h3 style="margin:0">Grade ${g}</h3>
-        <div class="muted" style="font-size:12.5px">${list.length?list.length+(list.length===1?' subject':' subjects'):'Not available yet'}</div></div></div>
-      <div style="margin-top:14px;display:flex;gap:6px;flex-wrap:wrap">${names}</div>
+let META_CACHE=null, LAND_GRADE=9;
+const SUBJ_STYLE={bio:['#12a150','#e8f8ee'],chem:['#e08b00','#fff5e2'],phys:['#1b6be4','#e8f0fe'],
+  engl:['#e8590c','#fdeee4'],math:['#7048e8','#f0ecfe'],agri:['#0c8599','#e2f6f9'],
+  hist:['#a16207','#fdf3da'],geo:['#0b7285','#e3f5f8'],econ:['#2b8a3e','#eaf8ee'],
+  citz:['#c2255c','#fdeaf2'],civics:['#c2255c','#fdeaf2'],ict:['#3b5bdb','#eaf0ff']};
+function subjStyle(code){return SUBJ_STYLE[code]||['#1b6be4','#e8f0fe'];}
+function openSubject(id){
+  location.hash = currentUser() ? ('#/subject/'+id) : '#/register';
+}
+function pickGrade(g){
+  LAND_GRADE=g;
+  document.querySelectorAll('.gtab').forEach(b=>b.classList.toggle('on', +b.dataset.g===+g));
+  const host=document.getElementById('subjectGrid'); if(host) host.innerHTML=gradeGrid(g);
+  const cap=document.getElementById('gradeCap'); if(cap) cap.textContent=gradeCaption(g);
+}
+function gradeCaption(g){
+  const list=(META_CACHE&&META_CACHE.grades&&META_CACHE.grades[g])||[];
+  if(!list.length) return 'Grade '+g+' is not published yet — it is being prepared.';
+  const units=list.reduce((a,s)=>a+(s.units||0),0), lessons=list.reduce((a,s)=>a+(s.lessons||0),0);
+  return list.length+' subject'+(list.length===1?'':'s')+' · '+units+' units · '+lessons+' lessons';
+}
+function gradeGrid(g){
+  const list=(META_CACHE&&META_CACHE.grades&&META_CACHE.grades[g])||[];
+  const signed=!!currentUser();
+  if(!list.length) return `<div class="lp-empty"><b>Grade ${g} is not published yet.</b>
+    <p>Grades 9, 10 and 11 are ready to study now. Grade ${g} will appear here as soon as its subjects are loaded.</p></div>`;
+  return list.map(s=>{
+    const [fg,bg]=subjStyle(s.code);
+    return `<div class="subjcard">
+      <div class="subj-top">
+        <div class="subj-tile" style="background:${bg};color:${fg}">${icon(s.code)}</div>
+        <div><div class="subj-name">${esc(s.name)}</div><div class="subj-grade">Grade ${g}</div></div>
+      </div>
+      <div class="subj-meta">
+        <span><b>${s.units}</b> unit${s.units===1?'':'s'}</span>
+        <span><b>${s.lessons}</b> lesson${s.lessons===1?'':'s'}</span>
+        <span><b>10</b> questions each</span>
+      </div>
+      <button class="btn btn-primary subj-btn" onclick="openSubject(${s.id})">${signed?'Open subject':'Start studying'}</button>
     </div>`;
   }).join('');
+}
+
+async function viewLanding(){
+  let meta={grades:{},stats:{}};
+  try{meta=await api('/api/meta');}catch(e){}
+  META_CACHE=meta;
+  const st=meta.stats||{};
+  const avail=(meta.grades_available||[]).map(Number);
+  const gs=[9,10,11,12];
+  LAND_GRADE=avail.includes(9)?9:(avail[0]||9);
+  const nums=n=>String(n||0).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  const signed=!!currentUser();
 
   $app.innerHTML = `
   ${topbar()}
-  <section class="hero"><div class="wrap">
-    <div class="herogrid">
-      <div>
-        <div class="eyebrow">Ethiopian secondary school · Grade 9–11</div>
-        <h1>Study every lesson from your own textbooks — and prove it with a certificate.</h1>
-        <p class="lede">EduLearn turns the MoE curriculum into a guided course: read a lesson, answer its
-        questions, revise with flashcards, and sit a final examination when you are ready.</p>
-        <div class="cta-row">
-          <button class="btn btn-primary btn-lg" onclick="location.hash='#/register'">Create your free account</button>
-          <button class="btn btn-outline btn-lg" onclick="scrollToId('how')">See how it works</button>
-        </div>
-        <div class="hero-note">No fees · Works on any phone · Your progress is saved as you go</div>
+
+  <section class="lp-hero"><div class="wrap lp-hero-grid">
+    <div class="lp-hero-copy">
+      <span class="lp-eyebrow">Grade 9–11 · Ethiopian curriculum</span>
+      <h1>Study for your <span class="hl">exams</span> — and what comes after.</h1>
+      <p class="lp-lede">Every unit and sub-unit of your textbook, lesson by lesson, with an
+      assessment after each one and flashcards for the terms. On any phone, at no cost.</p>
+      <div class="lp-cta">
+        <button class="btn btn-primary btn-lg" onclick="location.hash='${signed?'#/dashboard':'#/register'}'">
+          ${signed?'Go to my dashboard':'Create your free account'}</button>
+        <button class="btn btn-ghost btn-lg" onclick="scrollToId('subjects')">Browse subjects</button>
       </div>
-      <div class="herocard">
-        <div class="herocard-top"><b>Subject progress</b><span class="chip chip-dark">Biology · Grade 9</span></div>
-        <div class="herocard-row"><span>Unit 1 — Introduction to Biology</span><span class="ok-tick">Done</span></div>
-        <div class="herocard-row"><span>Unit 2 — Classification of Organisms</span><span class="ok-tick">Done</span></div>
-        <div class="herocard-row active"><span>Unit 3 — Cells</span><span class="muted">Lesson 4 of 10</span></div>
-        <div class="pbar" style="margin:12px 0 6px"><div class="pfill blue" style="width:64%"></div></div>
-        <div class="muted" style="font-size:12.5px">64% complete · 4 assessments passed</div>
-      </div>
+      <div class="lp-trust">Free · Works on any phone · Your progress is saved</div>
     </div>
-  </div></section>
-
-  <div class="truststrip"><div class="wrap">
-    <div class="trustitem"><b>${nums(st.subjects)}</b><span>subjects</span></div>
-    <div class="trustitem"><b>${nums(st.lessons)}</b><span>lessons</span></div>
-    <div class="trustitem"><b>${nums(st.questions)}</b><span>practice questions</span></div>
-    <div class="trustitem"><b>${nums(st.flashcards)}</b><span>flashcards</span></div>
-  </div></div>
-
-  <section class="block"><div class="wrap">
-    <h2 class="sec">Built on the Ethiopian curriculum</h2>
-    <p class="sub">Every lesson comes from the Ministry of Education textbooks, kept whole — not summarised, not rewritten.</p>
-    <div class="grid g3">
-      <div class="card"><h3>Your textbook content</h3><p>Lesson titles follow the official units and sub-units, so what you study here matches what you are examined on in school.</p></div>
-      <div class="card"><h3>10 questions per lesson</h3><p>Each lesson ends with its own assessment. Score 80% to pass, and see why every wrong answer was wrong.</p></div>
-      <div class="card"><h3>Everything is saved</h3><p>Your progress, scores and certificates stay on your account, so you can continue on any phone.</p></div>
-    </div>
-  </div></section>
-
-  <section class="block alt" id="how"><div class="wrap">
-    <h2 class="sec">How it works</h2>
-    <p class="sub">Four steps from your first lesson to a certificate you can show.</p>
-    <div class="steps4">
-      <div class="step4"><div class="step-num">1</div><b>Register</b><p>Your name, grade, school and phone number. It takes one minute.</p></div>
-      <div class="step4"><div class="step-num">2</div><b>Choose a subject</b><p>Biology, Chemistry, Physics, Mathematics or English — unit by unit.</p></div>
-      <div class="step4"><div class="step-num">3</div><b>Learn and practise</b><p>Read the lesson, take its questions, revise with flashcards, and repeat until you pass.</p></div>
-      <div class="step4"><div class="step-num">4</div><b>Sit the final exam</b><p>Finish every unit to unlock a 125-question examination. Score 100 or more to earn your certificate.</p></div>
-    </div>
-  </div></section>
-
-  <section class="block"><div class="wrap">
-    <h2 class="sec">Choose your grade</h2>
-    <p class="sub">Open a grade to see the subjects available to you.</p>
-    <div class="grid g4">${gradeBlocks}</div>
-  </div></section>
-
-  <section class="block alt"><div class="wrap">
-    <div class="certband">
-      <div>
-        <h2 class="sec" style="margin-bottom:8px">Finish with a certificate that can be verified</h2>
-        <p class="sub" style="margin-bottom:0">Pass the final examination and you receive a certificate carrying your name,
-        the subject, your score and a unique ID. Anyone — a school, a parent, an employer — can check it is genuine
-        using that ID, without needing an account.</p>
-        <div class="cta-row" style="margin-top:22px">
-          <button class="btn btn-primary btn-lg" onclick="location.hash='#/register'">Start now</button>
-          <button class="btn btn-ghost btn-lg" onclick="location.hash='#/verify'">Verify a certificate</button>
+    <div class="lp-hero-art">
+      <div class="mock">
+        <div class="mock-head"><span class="mock-dot"></span><b>Biology · Grade 9</b>
+          <span class="mock-chip">64%</span></div>
+        <div class="mock-row done"><span>Unit 1 · Introduction to Biology</span><span class="ok-tick">✓</span></div>
+        <div class="mock-row done"><span>Unit 2 · Classification of Organisms</span><span class="ok-tick">✓</span></div>
+        <div class="mock-row now"><span>Unit 3 · Cells · lesson 4 of 10</span><span class="mock-chip">now</span></div>
+        <div class="mock-bar"><i style="width:64%"></i></div>
+        <div class="mock-foot">
+          <div><b>10</b><span>questions per lesson</span></div>
+          <div><b>80%</b><span>to pass</span></div>
+          <div><b>125</b><span>final exam</span></div>
         </div>
       </div>
-      <div class="certmini">
-        <div class="certmini-in"><div class="certmini-seal">EL</div>
-          <div class="certmini-title">Certificate of Completion</div>
-          <div class="certmini-name">Student Name</div>
-          <div class="certmini-sub">Biology · Grade 9</div>
-          <div class="certmini-foot"><span>Score 108 / 125</span><span>ID CERT-2026-95834</span></div>
-        </div>
+      <div class="mock-badge">Certificate on completion</div>
+    </div>
+  </div></section>
+
+  <section class="lp-benefits"><div class="wrap">
+    <h2 class="lp-h2">Make the next result feel reachable.</h2>
+    <div class="lp-chips">
+      <span class="lp-chip"><i class="bdot" style="background:#1b6be4"></i>Pass your exams</span>
+      <span class="lp-chip"><i class="bdot" style="background:#e08b00"></i>Catch up after class</span>
+      <span class="lp-chip"><i class="bdot" style="background:#12a150"></i>Practise every lesson</span>
+      <span class="lp-chip"><i class="bdot" style="background:#7048e8"></i>Study in your own time</span>
+    </div>
+  </div></section>
+
+  <section class="lp-block"><div class="wrap">
+    <h2 class="lp-h2">One subject, four ways to understand it.</h2>
+    <p class="lp-sub">Read it, revise it, test it, then ask about the part that did not land.</p>
+    <div class="lp-grid4">
+      <div class="lp-fcard"><div class="ftile" style="background:#e8f0fe;color:#1b6be4">L</div>
+        <b>Lessons</b><p>The textbook content for the exact grade, subject, unit and sub-unit you are on.</p></div>
+      <div class="lp-fcard"><div class="ftile" style="background:#fff5e2;color:#e08b00">N</div>
+        <b>Notes</b><p>Download the study notes for your subject and revise wherever you are.</p></div>
+      <div class="lp-fcard"><div class="ftile" style="background:#e8f8ee;color:#12a150">Q</div>
+        <b>Quizzes</b><p>Ten questions after every lesson, so you see what stuck before exam week.</p></div>
+      <div class="lp-fcard"><div class="ftile" style="background:#f0ecfe;color:#7048e8">A</div>
+        <b>Ask</b><p>Ask a question and get the answer from your own notes, with the lesson it came from.</p></div>
+    </div>
+  </div></section>
+
+  <section class="lp-split"><div class="wrap lp-split-grid">
+    <div>
+      <h2 class="lp-h2 left">Ask reads the lesson with you.</h2>
+      <div class="checklist">
+        <div class="check"><span class="ck">✓</span><div><b>Answers stay in your syllabus.</b>
+          <p>Every answer is taken from the lessons and notes of the subject you opened.</p></div></div>
+        <div class="check"><span class="ck">✓</span><div><b>You can see where it came from.</b>
+          <p>Each answer lists the lesson and unit it was taken from, and opens it in one tap.</p></div></div>
+        <div class="check"><span class="ck">✓</span><div><b>It says when something is not covered.</b>
+          <p>If your notes do not answer the question, it tells you instead of inventing an answer.</p></div></div>
+      </div>
+    </div>
+    <div class="chat-mock">
+      <div class="cm-q">What is the difference between a cell wall and a cell membrane?</div>
+      <div class="cm-a"><span class="cm-tag">From your notes</span>
+        The cell wall is a rigid outer layer found in plant cells, while the cell membrane
+        controls what enters and leaves the cell.
+        <div class="cm-cite"><b>Unit 3 · Cells</b><span>Biology · Grade 9 · tap to open</span></div>
       </div>
     </div>
   </div></section>
 
-  <section class="block"><div class="wrap">
-    <h2 class="sec">Questions students ask</h2>
-    <p class="sub">Straight answers before you sign up.</p>
+  <section class="lp-block alt" id="subjects"><div class="wrap">
+    <h2 class="lp-h2">Pick a subject by colour, icon, and grade.</h2>
+    <p class="lp-sub" id="gradeCap">${gradeCaption(LAND_GRADE)}</p>
+    <div class="gtabs">
+      ${gs.map(g=>{
+        const on=avail.includes(g);
+        return `<button class="gtab ${g===LAND_GRADE?'on':''} ${on?'':'off'}" data-g="${g}"
+          onclick="pickGrade(${g})">Grade ${g}${on?'':' · soon'}</button>`;
+      }).join('')}
+    </div>
+    <div class="subj-grid" id="subjectGrid">${gradeGrid(LAND_GRADE)}</div>
+  </div></section>
+
+  <section class="lp-stats"><div class="wrap">
+    <div class="lp-statrow">
+      <div><b>${nums(st.subjects)}</b><span>subjects</span></div>
+      <div><b>${nums(st.lessons)}</b><span>lessons</span></div>
+      <div><b>${nums(st.questions)}</b><span>practice questions</span></div>
+      <div><b>${nums(st.flashcards)}</b><span>flashcards</span></div>
+    </div>
+  </div></section>
+
+  <section class="lp-split alt"><div class="wrap lp-split-grid flip">
+    <div class="certmini">
+      <div class="certmini-in"><div class="certmini-seal">EL</div>
+        <div class="certmini-title">Certificate of Completion</div>
+        <div class="certmini-name">Student Name</div>
+        <div class="certmini-sub">Biology · Grade 9</div>
+        <div class="certmini-foot"><span>Score 108 / 125</span><span>ID CERT-2026-95834</span></div>
+      </div>
+    </div>
+    <div>
+      <h2 class="lp-h2 left">Finish with a certificate that can be verified.</h2>
+      <p class="lp-sub left">Pass every lesson, then sit the 125-question final examination for the subject.
+      Score 100 or more and your certificate carries your name, the subject, your score and a unique ID.</p>
+      <div class="checklist">
+        <div class="check"><span class="ck">✓</span><div><b>Anyone can check it is genuine.</b>
+          <p>A school, a parent or an employer can verify it with the ID — no account needed.</p></div></div>
+        <div class="check"><span class="ck">✓</span><div><b>Retake as often as you need.</b>
+          <p>Only your best score counts, and every wrong answer is explained.</p></div></div>
+      </div>
+      <div class="lp-cta"><button class="btn btn-primary btn-lg" onclick="location.hash='${signed?'#/certs':'#/register'}'">
+        ${signed?'My certificates':'Start now'}</button>
+        <button class="btn btn-ghost btn-lg" onclick="location.hash='#/verify'">Verify a certificate</button></div>
+    </div>
+  </div></section>
+
+  <section class="lp-block"><div class="wrap">
+    <h2 class="lp-h2">Questions students ask</h2>
+    <p class="lp-sub">Straight answers before you sign up.</p>
     <div class="faq">
       <details><summary>Does it cost anything?</summary><p>No. The lessons, assessments, flashcards and certificates are free to use.</p></details>
       <details><summary>Do I need a computer?</summary><p>No. The platform is built for a phone, and everything works on a normal mobile connection.</p></details>
@@ -182,29 +274,35 @@ async function viewLanding(){
     </div>
   </div></section>
 
+  <section class="lp-final"><div class="wrap lp-final-in">
+    <h2>Start the study streak that gets you there.</h2>
+    <p>Read a lesson, answer its questions, pass it, and move on. Your progress is waiting on your phone.</p>
+    <button class="btn btn-amber btn-lg" onclick="location.hash='${signed?'#/dashboard':'#/register'}'">
+      ${signed?'Continue studying':'Start studying now'}</button>
+  </div></section>
+
   <div class="footer"><div class="wrap footer-grid">
     <div>
       <div class="brand" style="color:#fff"><div class="logo">EL</div>EduLearn</div>
-      <p class="muted" style="color:#8fa3c8;margin-top:10px;max-width:340px">Interactive digital learning for Ethiopian
-      secondary school students. Built on the MoE curriculum.</p>
+      <p class="muted" style="color:#9db1d6;margin-top:10px;max-width:340px">Interactive digital learning for Ethiopian
+      secondary school students. Built on the Ministry of Education curriculum.</p>
     </div>
     <div><b style="color:#fff;font-size:13px">Learn</b>
       <div class="footer-links"><a href="#/register">Create account</a><a href="#/login">Sign in</a>
-      <a onclick="scrollToId('how')">How it works</a></div></div>
-    <div><b style="color:#fff;font-size:13px">Subjects</b>
-      <div class="footer-links"><a onclick="goGrade(9)">Grade 9</a><a onclick="goGrade(10)">Grade 10</a>
-      <a onclick="goGrade(11)">Grade 11</a></div></div>
+      <a onclick="scrollToId('subjects')">Subjects</a></div></div>
+    <div><b style="color:#fff;font-size:13px">Grades</b>
+      <div class="footer-links"><a onclick="location.hash='#/';pickGrade(9)">Grade 9</a>
+      <a onclick="location.hash='#/';pickGrade(10)">Grade 10</a><a onclick="location.hash='#/';pickGrade(11)">Grade 11</a></div></div>
     <div><b style="color:#fff;font-size:13px">Certificates</b>
       <div class="footer-links"><a href="#/verify">Verify a certificate</a>
-      <a onclick="location.hash='#/register'">Get certified</a></div></div>
+      <a onclick="location.hash='${signed?'#/certs':'#/register'}'">Get certified</a></div></div>
   </div>
-  <div class="wrap" style="margin-top:22px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12);font-size:12.5px;color:#8fa3c8">
+  <div class="wrap" style="margin-top:22px;padding-top:16px;border-top:1px solid rgba(255,255,255,.14);font-size:12.5px;color:#9db1d6">
     © ${new Date().getFullYear()} EduLearn · Learn → practise → certify
   </div></div>`;
   window.scrollTo(0,0);
 }
 function scrollToId(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth'});}
-function goGrade(g){ location.hash = currentUser()? '#/dashboard':'#/register'; }
 
 /* ============================ AUTH ============================ */
 function viewAuth(mode){
@@ -227,28 +325,57 @@ function viewAuth(mode){
     f.innerHTML=`<div class="field"><label>Full Name</label><input class="input" id="fname" placeholder="e.g. Yared Tesfaye"></div>
       <div class="row2"><div class="field"><label>Grade</label><select class="input" id="fgrade"><option>9</option><option>10</option><option>11</option><option>12</option></select></div>
       <div class="field"><label>Age</label><input class="input" id="fage" type="number" min="9" max="99" placeholder="16"></div></div>
-      <div class="field"><label>Phone Number</label><input class="input" id="fphone" placeholder="+2519XXXXXXXX"></div>
+      <div class="field"><label>Phone Number</label><input class="input" id="fphone" placeholder="0911223344"></div>
       <div class="field"><label>School</label><input class="input" id="fschool" placeholder="Your school name"></div>
       <div class="field"><label>Create a Password</label><input class="input" id="fpass" type="password" placeholder="Min 6 characters"></div>
-      <button class="btn btn-primary" style="width:100%" onclick="doReg()">Create account &amp; start learning</button>`;
+      <button class="btn btn-primary" style="width:100%" id="authbtn" onclick="doReg()">Create account &amp; start learning</button>`;
   }else{
-    f.innerHTML=`<div class="field"><label>Phone Number</label><input class="input" id="fphone" placeholder="+2519XXXXXXXX"></div>
+    f.innerHTML=`<div class="field"><label>Phone Number</label><input class="input" id="fphone" placeholder="0911223344"></div>
       <div class="field"><label>Password</label><input class="input" id="fpass" type="password"></div>
-      <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Log in</button>`;
+      <button class="btn btn-primary" style="width:100%" id="authbtn" onclick="doLogin()">Log in</button>`;
+    if(PREPHONE){const ph=document.getElementById('fphone');if(ph)ph.value=PREPHONE;}
   }
   window.scrollTo(0,0);
 }
+let AUTH_BUSY=false, PREPHONE='';
+function authLock(on,label){
+  const b=document.getElementById('authbtn'); if(!b)return;
+  b.disabled=!!on; b.style.opacity=on?'.7':'';
+  if(label)b.textContent=on?'Please wait\u2026':label;
+}
 async function doReg(){
+  if(AUTH_BUSY)return;
   const body={full_name:$app.querySelector('#fname').value,grade:+$app.querySelector('#fgrade').value,
     age:+($app.querySelector('#fage').value||0),phone:$app.querySelector('#fphone').value,
     school:$app.querySelector('#fschool').value,password:$app.querySelector('#fpass').value};
+  AUTH_BUSY=true; authLock(true,'Create account & start learning');
   try{const d=await api('/api/register',{method:'POST',body});onAuth(d);}
-  catch(e){document.getElementById('autherr').textContent=e.message;}
+  catch(e){
+    const msg=e.message||'';
+    if(/already exists/i.test(msg)){
+      // This number is registered: send them to the sign-in form with it filled
+      // in, instead of leaving them stuck on the registration page.
+      PREPHONE=body.phone;
+      location.hash='#/login';
+      setTimeout(()=>{const err=document.getElementById('autherr');
+        if(err)err.textContent='This number is already registered. Enter your password to log in.';},60);
+    }else{
+      document.getElementById('autherr').textContent=msg;
+    }
+    authLock(false,'Create account & start learning');
+  }
+  finally{AUTH_BUSY=false;}
 }
 async function doLogin(){
+  if(AUTH_BUSY)return;
   const body={phone:$app.querySelector('#fphone').value,password:$app.querySelector('#fpass').value};
+  AUTH_BUSY=true; authLock(true,'Log in');
   try{const d=await api('/api/login',{method:'POST',body});onAuth(d);}
-  catch(e){document.getElementById('autherr').textContent=e.message;}
+  catch(e){
+    document.getElementById('autherr').textContent=e.message;
+    authLock(false,'Log in');
+  }
+  finally{AUTH_BUSY=false;}
 }
 function onAuth(d){
   try{lsSet(TOK,d.token);lsSet(USR,JSON.stringify(d.user));}catch(e){}
@@ -288,15 +415,15 @@ async function viewDashboard(){
   <div class="wrap" style="padding-top:22px;padding-bottom:40px">
     <div class="crumb"><a href="#/">Home</a> › <b>Dashboard</b></div>
     ${storageNotice()}
-    <div class="card" style="background:linear-gradient(135deg,#0f3d6b,#1b6aa8);color:#fff;border:none;margin-bottom:20px">
+    <div class="card" style="background:var(--grad);color:#fff;border:none;margin-bottom:20px">
       <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
         <div style="width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center;font-size:22px;font-weight:600;font-family:Georgia,serif;color:#fff;border:1px solid rgba(255,255,255,.4)">${initials(u.full_name)}</div>
         <div style="flex:1;min-width:220px"><div style="font-size:22px;font-weight:800">${esc(u.full_name)}</div>
-        <div style="color:#cfe3f7">Grade ${u.grade} · ${esc(u.school||'—')}</div></div>
-        <div style="text-align:center"><div style="font-size:30px;font-weight:800">${d.overall.pct}%</div><div style="color:#cfe3f7">overall progress</div></div>
+        <div style="color:#dbe6ff">Grade ${u.grade} · ${esc(u.school||'—')}</div></div>
+        <div style="text-align:center"><div style="font-size:30px;font-weight:800">${d.overall.pct}%</div><div style="color:#dbe6ff">overall progress</div></div>
       </div>
       <div class="pbar" style="background:rgba(255,255,255,.25);margin-top:14px"><div class="pfill" style="width:${d.overall.pct}%"></div></div>
-      <div class="muted" style="color:#cfe3f7;font-size:12px;margin-top:4px">${d.overall.done}/${d.overall.total} lessons completed</div>
+      <div class="muted" style="color:#dbe6ff;font-size:12px;margin-top:4px">${d.overall.done}/${d.overall.total} lessons completed</div>
     </div>
 
     ${d.continue?`<button class="btn btn-amber" style="font-size:16px;width:100%;margin-bottom:20px" onclick="location.hash='#/lesson/${d.continue.id}'">
@@ -360,7 +487,7 @@ async function viewSubject(id){
       const cls= st==='Completed'?'done':st==='Quiz Failed'?'fail':st==='In Progress'||st==='Review Required'?'cur':'';
       return `<div class="lesson" onclick="location.hash='#/lesson/${l.id}'">
         <div class="st ${cls}">${mark}</div>
-        <div class="nm">Lesson ${l.number}. ${esc(l.title)}</div>
+        <div class="nm">${esc(l.title)}</div>
         ${l.best?`<span class="tl">best ${l.best}</span>`:''}${statusPill(st)}</div>`;
     }).join('');
     return `<div class="unit"><div class="head">
@@ -396,6 +523,7 @@ async function viewLesson(id,tab){
   const qcount=d.quiz_count;
   const state=d.progress?d.progress.status:'Not Started';
   let active=tab||lsGet(LS_TAB)||'learn';
+  if(!['learn','flash','quiz'].includes(active))active='learn';   // never crash on a stale link
   // lock quiz until reviewed? Always allow but show state
   renderLesson(d,u,id,active,qcount,state);
 }

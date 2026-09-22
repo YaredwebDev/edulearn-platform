@@ -69,6 +69,13 @@ def foot(rel=".."):
     return FOOT.replace("{rel}", rel)
 
 
+# per-subject colours for the icon tiles (same palette as the app)
+TILE = {"bio": ("#e8f8ee", "#12a150"), "chem": ("#fff5e2", "#e08b00"), "phys": ("#e8f0fe", "#1b6be4"),
+        "engl": ("#fdeee4", "#e8590c"), "math": ("#f0ecfe", "#7048e8"), "agri": ("#e2f6f9", "#0c8599"),
+        "hist": ("#fdf3da", "#a16207"), "geo": ("#e3f5f8", "#0b7285"), "econ": ("#eaf8ee", "#2b8a3e"),
+        "citz": ("#fdeaf2", "#c2255c"), "civics": ("#fdeaf2", "#c2255c"), "ict": ("#eaf0ff", "#3b5bdb")}
+
+
 # --------------------------------------------------------------------- index
 def build_index(out):
     grades = {}
@@ -84,84 +91,175 @@ def build_index(out):
     comma = lambda n: "{:,}".format(int(n or 0))
     grades_ready = sorted(grades)
     first_subj = grades[grades_ready[0]][0] if grades_ready else None
-    cards = []
-    for g in sorted(grades):
-        subs = "".join(f'''<a class="card click" href="{subj_path(s["id"])}" data-subj="{s["id"]}">
-          <div style="display:flex;align-items:center;gap:10px">
-            <div class="logo" style="width:36px;height:36px;font-size:13px">{esc(s["name"][:2]).upper()}</div>
-            <div><b>{esc(s["name"])}</b>
-              <div class="muted" style="font-size:12px">Grade {s["grade"]} · {s["units"]} units · {s["lessons"]} lessons</div></div>
+    ready = sorted(grades)
+    def tile(name, code, big=False):
+        bg, fg = TILE.get(code, ("#e8f0fe", "#1b6be4"))
+        return (f'<div class="subj-tile" style="background:{bg};color:{fg}">{esc(name[:2]).upper()}</div>')
+
+    # one grid per grade; the tabs show one at a time (all visible without JS)
+    grids = []
+    for g in ready:
+        subs = "".join(f'''<div class="subjcard">
+          <div class="subj-top">{tile(s["name"], s["code"])}
+            <div><div class="subj-name">{esc(s["name"])}</div><div class="subj-grade">Grade {g}</div></div>
           </div>
-          <div class="pbar" style="margin:12px 0 6px"><div class="pfill" style="width:0%" data-bar="{s["id"]}"></div></div>
-          <div class="muted" style="font-size:12px" data-prog="{s["id"]}">0 / {s["lessons"]} lessons completed</div>
-        </a>''' for s in grades[g])
-        cards.append(f'<div style="margin-top:26px"><h2 class="sec">Grade {g}</h2>'
-                     f'<div class="grid g3">{subs}</div></div>')
+          <div class="subj-meta"><span><b>{s["units"]}</b> units</span>
+            <span><b>{s["lessons"]}</b> lessons</span><span><b>10</b> questions each</span></div>
+          <a class="btn btn-primary subj-btn" href="{subj_path(s["id"])}">Open subject</a>
+        </div>''' for s in grades[g])
+        hidden = "" if g == ready[0] else " hidden"
+        grids.append(f'<div class="subj-grid" data-grade="{g}"{hidden}>{subs}</div>')
+    tabs = "".join(f'<button class="gtab{" on" if g == ready[0] else ""}" data-g="{g}" onclick="lbaTab({g})">Grade {g}</button>'
+                   for g in ready) + ('<button class="gtab off" data-g="12" onclick="lbaTab(12)">Grade 12 · soon</button>' if 12 not in ready else "")
+    g12 = ('<div class="lp-empty" id="g12note" hidden><b>Grade 12 is not published yet.</b><p>Grades 9, 10 and 11 are ready to study now. Grade 12 will appear here as soon as its subjects are loaded.</p></div>' if 12 not in ready else "")
+    first_link = subj_path(first_subj["id"]) if first_subj else "#"
+    first_name = esc(first_subj["name"]) if first_subj else "a subject"
+
     body = f'''
-<section class="hero" style="margin:0 -22px 0;padding:46px 22px 52px">
-  <div class="wrap" style="padding:0">
-    <div class="herogrid">
-      <div>
-        <div class="eyebrow">Ethiopian secondary school · Grade 9–11</div>
-        <h1>Study every lesson from your own textbooks.</h1>
-        <p class="lede">Every unit and sub-unit of the MoE curriculum, organised lesson by lesson,
-        each with its own assessment and flashcards. Read it on any phone — no app, no login.</p>
-        <div class="cta-row">
-          <a class="btn btn-primary btn-lg" href="{subj_path(first_subj["id"]) if first_subj else "#"}">Start with {esc(first_subj["name"]) if first_subj else "a subject"}</a>
-          <a class="btn btn-outline btn-lg" href="#grades">Browse all subjects</a>
-        </div>
-        <div class="hero-note">No fees · No account needed · Your progress is kept in this browser</div>
-      </div>
-      <div class="herocard">
-        <div class="herocard-top"><b>How to use this edition</b></div>
-        <div class="herocard-row"><span>1. Open a subject</span><span class="muted">free</span></div>
-        <div class="herocard-row"><span>2. Read a lesson</span><span class="muted">{comma(total_l)} to choose from</span></div>
-        <div class="herocard-row"><span>3. Flip the flashcards</span><span class="muted">{comma(total_f)}</span></div>
-        <div class="herocard-row active"><span>4. Take its assessment</span><span class="muted">10 questions · 80% to pass</span></div>
+<section class="lp-hero"><div class="wrap lp-hero-grid">
+  <div class="lp-hero-copy">
+    <span class="lp-eyebrow">Grade 9–11 · Ethiopian curriculum</span>
+    <h1>Study for your <span class="hl">exams</span> — and what comes after.</h1>
+    <p class="lp-lede">Every unit and sub-unit of the textbook, lesson by lesson, with an
+    assessment after each one and flashcards for the terms. On any phone, at no cost.</p>
+    <div class="lp-cta">
+      <a class="btn btn-primary btn-lg" href="{first_link}">Start with {first_name}</a>
+      <a class="btn btn-ghost btn-lg" href="#subjects">Browse subjects</a>
+    </div>
+    <div class="lp-trust">No account needed · Works on any phone · Your progress is kept in this browser</div>
+  </div>
+  <div class="lp-hero-art">
+    <div class="mock">
+      <div class="mock-head"><span class="mock-dot"></span><b>How to use this edition</b><span class="mock-chip">free</span></div>
+      <div class="mock-row"><span>1 · Open a subject</span><span class="muted">{comma(total_s)} to choose from</span></div>
+      <div class="mock-row"><span>2 · Read a lesson</span><span class="muted">{comma(total_l)} lessons</span></div>
+      <div class="mock-row"><span>3 · Flip the flashcards</span><span class="muted">{comma(total_f)} cards</span></div>
+      <div class="mock-row now"><span>4 · Take its assessment</span><span class="mock-chip">10 questions</span></div>
+      <div class="mock-foot">
+        <div><b>10</b><span>questions per lesson</span></div>
+        <div><b>80%</b><span>to pass</span></div>
+        <div><b>125</b><span>final exam</span></div>
       </div>
     </div>
-  </div>
-</section>
-
-<div class="truststrip" style="margin:0 -22px"><div class="wrap" style="padding:0">
-  <div class="trustitem"><b>{comma(total_s)}</b><span>subjects</span></div>
-  <div class="trustitem"><b>{comma(total_l)}</b><span>lessons</span></div>
-  <div class="trustitem"><b>{comma(total_q)}</b><span>assessment questions</span></div>
-  <div class="trustitem"><b>{comma(total_f)}</b><span>flashcards</span></div>
-</div></div>
-
-<section class="block"><div>
-  <h2 class="sec">Built on the Ethiopian curriculum</h2>
-  <p class="sub">Lesson titles follow the official units, so what you study here matches what you are examined on.</p>
-  <div class="grid g3">
-    <div class="card"><h3>Textbook content, kept whole</h3><p>Not summaries. Each lesson carries the material from the official textbook for that topic.</p></div>
-    <div class="card"><h3>An assessment per lesson</h3><p>Ten questions drawn from that lesson's own text, with the reason for every answer.</p></div>
-    <div class="card"><h3>Revision built in</h3><p>Flashcards for the terms, definitions, formulas and facts you need to remember.</p></div>
+    <div class="mock-badge">Certificate on completion</div>
   </div>
 </div></section>
 
-<section class="block alt" id="grades"><div>
-  <h2 class="sec">Choose your subjects</h2>
-  <p class="sub">Open any subject to start reading, or see how far you have already got.</p>
-  {''.join(cards)}
+<section class="lp-benefits"><div class="wrap">
+  <h2 class="lp-h2">Make the next result feel reachable.</h2>
+  <div class="lp-chips">
+    <span class="lp-chip"><i class="bdot" style="background:#1b6be4"></i>Pass your exams</span>
+    <span class="lp-chip"><i class="bdot" style="background:#e08b00"></i>Revise after class</span>
+    <span class="lp-chip"><i class="bdot" style="background:#12a150"></i>Practise every lesson</span>
+    <span class="lp-chip"><i class="bdot" style="background:#7048e8"></i>Study in your own time</span>
+  </div>
 </div></section>
 
-<section class="block"><div>
-  <h2 class="sec">Common questions</h2>
-  <p class="sub">Before you start.</p>
+<section class="lp-block"><div class="wrap">
+  <h2 class="lp-h2">One subject, four ways to understand it.</h2>
+  <p class="lp-sub">Read it, revise it, test it, then check the part that did not land.</p>
+  <div class="lp-grid4">
+    <div class="lp-fcard"><div class="ftile" style="background:#e8f0fe;color:#1b6be4">L</div>
+      <b>Lessons</b><p>The textbook content for the exact grade, subject, unit and sub-unit you are on.</p></div>
+    <div class="lp-fcard"><div class="ftile" style="background:#fff5e2;color:#e08b00">N</div>
+      <b>Notes</b><p>The structured study notes for your subject, ready to read and download.</p></div>
+    <div class="lp-fcard"><div class="ftile" style="background:#e8f8ee;color:#12a150">Q</div>
+      <b>Quizzes</b><p>Ten questions after every lesson, so you see what stuck before exam week.</p></div>
+    <div class="lp-fcard"><div class="ftile" style="background:#f0ecfe;color:#7048e8">A</div>
+      <b>Flashcards</b><p>The terms, definitions and formulas to memorise, one card at a time.</p></div>
+  </div>
+</div></section>
+
+<section class="lp-split alt"><div class="wrap lp-split-grid">
+  <div>
+    <h2 class="lp-h2 left">Every lesson ends with a check.</h2>
+    <div class="checklist">
+      <div class="check"><span class="ck">✓</span><div><b>Ten questions, drawn from the lesson.</b>
+        <p>Nothing is asked that the lesson did not cover.</p></div></div>
+      <div class="check"><span class="ck">✓</span><div><b>You see why an answer was wrong.</b>
+        <p>Every question comes with the reason, so the next attempt is better than the last.</p></div></div>
+      <div class="check"><span class="ck">✓</span><div><b>Retake it as often as you need.</b>
+        <p>Score 80% to pass the lesson and only your best score is kept.</p></div></div>
+    </div>
+  </div>
+  <div class="chat-mock">
+    <div class="cm-q">What is the difference between a cell wall and a cell membrane?</div>
+    <div class="cm-a"><span class="cm-tag">Worked example</span>
+      The cell wall is a rigid outer layer found in plant cells, while the cell membrane
+      controls what enters and leaves the cell.
+      <div class="cm-cite"><b>Unit 3 · Cells</b><span>Biology · Grade 9</span></div>
+    </div>
+  </div>
+</div></section>
+
+<section class="lp-block" id="subjects"><div class="wrap">
+  <h2 class="lp-h2">Pick a subject by colour, icon, and grade.</h2>
+  <p class="lp-sub">{len(ready)} grades · {comma(total_s)} subjects · {comma(total_l)} lessons</p>
+  <div class="gtabs">{tabs}</div>
+  {''.join(grids)}{g12}
+</div></section>
+
+<section class="lp-stats"><div class="wrap">
+  <div class="lp-statrow">
+    <div><b>{comma(total_s)}</b><span>subjects</span></div>
+    <div><b>{comma(total_l)}</b><span>lessons</span></div>
+    <div><b>{comma(total_q)}</b><span>practice questions</span></div>
+    <div><b>{comma(total_f)}</b><span>flashcards</span></div>
+  </div>
+</div></section>
+
+<section class="lp-split"><div class="wrap lp-split-grid flip">
+  <div class="certmini">
+    <div class="certmini-in"><div class="certmini-seal">EL</div>
+      <div class="certmini-title">Certificate of Completion</div>
+      <div class="certmini-name">Student Name</div>
+      <div class="certmini-sub">Biology · Grade 9</div>
+      <div class="certmini-foot"><span>Score 108 / 125</span><span>ID CERT-2026-95834</span></div>
+    </div>
+  </div>
+  <div>
+    <h2 class="lp-h2 left">Finish with a certificate that can be verified.</h2>
+    <p class="lp-sub left">Pass every lesson, then sit the 125-question final examination for the subject.
+    Score 100 or more and the certificate carries the name, the subject, the score and a unique ID.</p>
+    <div class="checklist">
+      <div class="check"><span class="ck">✓</span><div><b>Anyone can check it is genuine.</b>
+        <p>A school, a parent or an employer can verify it with the ID — no account needed.</p></div></div>
+      <div class="check"><span class="ck">✓</span><div><b>This edition is the reading side.</b>
+        <p>Accounts, final examinations and certificates live on the full platform, which is free too.</p></div></div>
+    </div>
+    <div class="lp-cta"><a class="btn btn-primary btn-lg" href="{first_link}">Start now</a></div>
+  </div>
+</div></section>
+
+<section class="lp-block"><div class="wrap">
+  <h2 class="lp-h2">Questions students ask</h2>
+  <p class="lp-sub">Straight answers before you start.</p>
   <div class="faq">
-    <details><summary>Does this cost anything, or need an account?</summary><p>No. This edition is open — open a subject and begin. An account is only needed on the full platform, for certificates.</p></details>
+    <details><summary>Does this cost anything, or need an account?</summary><p>No. This edition is open — open a subject and begin reading. An account is only needed on the full platform, for certificates.</p></details>
     <details><summary>Do I need a computer?</summary><p>No. It is built for a phone and works on a normal mobile connection.</p></details>
     <details><summary>What happens if I fail an assessment?</summary><p>Nothing is lost. You are shown why each answer was wrong and can retake it as often as you like. Only your best score is kept.</p></details>
     <details><summary>Is this the real textbook?</summary><p>Yes — the lessons come from the Ministry of Education textbooks, arranged lesson by lesson to match the official units.</p></details>
-    <details><summary>Where are certificates?</summary><p>Certificates, final examinations and student accounts live on the full platform. This edition is the reading and practice side of the same course.</p></details>
+    <details><summary>Which grades are here?</summary><p>Grades 9, 10 and 11 are complete. Grade 12 is being added.</p></details>
   </div>
-</div></section>'''
+</div></section>
+
+<section class="lp-final"><div class="wrap lp-final-in">
+  <h2>Start the study streak that gets you there.</h2>
+  <p>Read a lesson, answer its questions, pass it, and move on. The whole curriculum is open here.</p>
+  <a class="btn btn-amber btn-lg" href="{first_link}">Start studying now</a>
+</div></section>
+'''
+    body += """<script>
+function lbaTab(g){
+  document.querySelectorAll('.gtab').forEach(function(b){ b.classList.toggle('on', +b.dataset.g===+g); });
+  var target = document.querySelector('.subj-grid[data-grade="'+g+'"]');
+  document.querySelectorAll('.subj-grid[data-grade]').forEach(function(p){ p.hidden = (+p.dataset.g!==+g); });
+  var note = document.getElementById('g12note'); if(note) note.hidden = !!target;
+}
+</script>"""
+
     with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as fh:
         fh.write(head("Grade 9–11 courses", ".", "Every Ethiopian secondary school lesson for Grades 9–11, each with its own assessment and flashcards. Free, phone-first, no account needed.") + body + foot("."))
-    return total_l, total_q
-    with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as fh:
-        fh.write(head("Grade 9–11 courses", ".", "Lesson-by-lesson courses with quizzes") + body + foot("."))
     return total_l, total_q
 
 

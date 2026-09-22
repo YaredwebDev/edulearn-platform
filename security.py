@@ -68,3 +68,16 @@ def admin_check(field: str, answer: str) -> bool:
 
 def is_valid_phone(p):
     return bool(re.fullmatch(r"\+?[0-9][0-9 \-]{6,17}[0-9]", (p or "").strip()))
+
+def normalize_phone(p):
+    """One canonical form per number, so 0911223344, 251911223344 and
+    +251 911 223 344 are all recognised as the same account."""
+    s = (p or "").strip()
+    digits = re.sub(r"[^0-9+]", "", s)
+    if digits.startswith("+251"):
+        digits = "0" + digits[4:]
+    elif digits.startswith("251") and len(digits) >= 12:
+        digits = "0" + digits[3:]
+    elif digits.startswith("00"):
+        digits = "+" + digits[2:]
+    return digits
