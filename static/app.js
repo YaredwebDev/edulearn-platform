@@ -71,58 +71,136 @@ const LETTERS=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','
 
 /* ============================ LANDING ============================ */
 async function viewLanding(){
-  let meta={grades:{}};try{meta=await api('/api/meta');}catch(e){}
+  let meta={grades:{},stats:{}};try{meta=await api('/api/meta');}catch(e){}
   const gs=[9,10,11,12];
   const subjShort={chem:'Chemistry',bio:'Biology',phys:'Physics',engl:'English',math:'Mathematics',agri:'Agriculture'};
+  const st=meta.stats||{};
+  const nums=(n)=>String(n||0).replace(/\B(?=(\d{3})+(?!\d))/g,',');
   const gradeBlocks = gs.map(g=>{
     const list=meta.grades[g]||[];
-    const names=list.length?list.map(s=>`<span class="chip">${subjShort[s.code]||s.name}</span>`).join(''):'<span class="muted">Subjects loading / to be added</span>';
-    return `<div class="card click" onclick="goGrade(${g})"><h3>Grade ${g}</h3><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">${names}</div></div>`;
+    const names=list.length?list.map(s=>`<span class="chip chip-dark">${subjShort[s.code]||s.name}</span>`).join(''):'<span class="muted" style="font-size:13px">Coming soon</span>';
+    return `<div class="card click gradepick" onclick="goGrade(${g})">
+      <div class="gradepick-head"><span class="gradepick-num">${g}</span><div>
+        <h3 style="margin:0">Grade ${g}</h3>
+        <div class="muted" style="font-size:12.5px">${list.length?list.length+' subjects':'Not available yet'}</div></div></div>
+      <div style="margin-top:14px;display:flex;gap:6px;flex-wrap:wrap">${names}</div>
+    </div>`;
   }).join('');
+
   $app.innerHTML = `
   ${topbar()}
-  <div class="hero"><div class="wrap">
-    <div class="badge-hero"><span class="chip">Interactive digital teacher</span><span class="chip">Certificate on completion</span><span class="chip">Progress tracking</span></div>
-    <h1>Master your Grade 9–12 subjects, lesson by lesson.</h1>
-    <p class="lede">EduLearn turns your complete textbooks into an interactive classroom — study each lesson, quiz yourself, revise with flashcards, and earn a professional certificate when you master a subject.</p>
-    <div class="cta-row">
-      <button class="btn btn-primary" style="font-size:15px" onclick="location.hash='#/register'">Begin registration</button>
-      <button class="btn btn-ghost" style="background:#fff;color:#0f3d6b" onclick="scrollToId('how')">How it works</button>
-    </div>
-  </div></div>
-
-  <section class="block" id="how"><div class="wrap">
-    <h2 class="sec">How EduLearn works</h2>
-    <p class="sub">A complete learning journey that takes you from first reading to a verified certificate.</p>
-    <div class="steps">
-      <div class="step"><div class="num">1</div><b>Join</b><p class="muted" style="margin-top:6px">Register with your name, grade, school & phone.</p></div>
-      <div class="step"><div class="num">2</div><b>Choose</b><p class="muted" style="margin-top:6px">Pick your grade, then a subject like Chemistry or Biology.</p></div>
-      <div class="step"><div class="num">3</div><b>Learn</b><p class="muted" style="margin-top:6px">Study unit by unit, lesson by lesson like a real classroom.</p></div>
-      <div class="step"><div class="num">4</div><b>Practice</b><p class="muted" style="margin-top:6px">Take lesson quizzes, review mistakes, retake until you pass.</p></div>
-      <div class="step"><div class="num">5</div><b>Master</b><p class="muted" style="margin-top:6px">Complete the subject & pass the final examination.</p></div>
-      <div class="step"><div class="num">6</div><b>Certify</b><p class="muted" style="margin-top:6px">Earn a unique, verifiable certificate of completion.</p></div>
+  <section class="hero"><div class="wrap">
+    <div class="herogrid">
+      <div>
+        <div class="eyebrow">Ethiopian secondary school · Grade 9–11</div>
+        <h1>Study every lesson from your own textbooks — and prove it with a certificate.</h1>
+        <p class="lede">EduLearn turns the MoE curriculum into a guided course: read a lesson, answer its
+        questions, revise with flashcards, and sit a final examination when you are ready.</p>
+        <div class="cta-row">
+          <button class="btn btn-primary btn-lg" onclick="location.hash='#/register'">Create your free account</button>
+          <button class="btn btn-outline btn-lg" onclick="scrollToId('how')">See how it works</button>
+        </div>
+        <div class="hero-note">No fees · Works on any phone · Your progress is saved as you go</div>
+      </div>
+      <div class="herocard">
+        <div class="herocard-top"><b>Subject progress</b><span class="chip chip-dark">Biology · Grade 9</span></div>
+        <div class="herocard-row"><span>Unit 1 — Introduction to Biology</span><span class="ok-tick">Done</span></div>
+        <div class="herocard-row"><span>Unit 2 — Classification of Organisms</span><span class="ok-tick">Done</span></div>
+        <div class="herocard-row active"><span>Unit 3 — Cells</span><span class="muted">Lesson 4 of 10</span></div>
+        <div class="pbar" style="margin:12px 0 6px"><div class="pfill blue" style="width:64%"></div></div>
+        <div class="muted" style="font-size:12.5px">64% complete · 4 assessments passed</div>
+      </div>
     </div>
   </div></section>
 
-  <section class="block" style="background:#fff"><div class="wrap">
-    <h2 class="sec">Choose your grade</h2><p class="sub">Open a grade to see the subjects available for you.</p>
-    <div class="grid g4">${gradeBlocks}</div>
+  <div class="truststrip"><div class="wrap">
+    <div class="trustitem"><b>${nums(st.lessons)}</b><span>lessons</span></div>
+    <div class="trustitem"><b>${nums(st.subjects)}</b><span>subjects</span></div>
+    <div class="trustitem"><b>${nums(st.questions)}</b><span>practice questions</span></div>
+    <div class="trustitem"><b>${nums(st.flashcards)}</b><span>flashcards</span></div>
+  </div></div>
+
+  <section class="block"><div class="wrap">
+    <h2 class="sec">Built on the Ethiopian curriculum</h2>
+    <p class="sub">Every lesson comes from the Ministry of Education textbooks, kept whole — not summarised, not rewritten.</p>
+    <div class="grid g3">
+      <div class="card"><h3>Your textbook content</h3><p>Lesson titles follow the official units and sub-units, so what you study here matches what you are examined on in school.</p></div>
+      <div class="card"><h3>10 questions per lesson</h3><p>Each lesson ends with its own assessment. Score 80% to pass, and see why every wrong answer was wrong.</p></div>
+      <div class="card"><h3>Everything is saved</h3><p>Your progress, scores and certificates stay on your account, so you can continue on any phone.</p></div>
+    </div>
+  </div></section>
+
+  <section class="block alt" id="how"><div class="wrap">
+    <h2 class="sec">How it works</h2>
+    <p class="sub">Four steps from your first lesson to a certificate you can show.</p>
+    <div class="steps4">
+      <div class="step4"><div class="step-num">1</div><b>Register</b><p>Your name, grade, school and phone number. It takes one minute.</p></div>
+      <div class="step4"><div class="step-num">2</div><b>Choose a subject</b><p>Biology, Chemistry, Physics, Mathematics or English — unit by unit.</p></div>
+      <div class="step4"><div class="step-num">3</div><b>Learn and practise</b><p>Read the lesson, take its questions, revise with flashcards, and repeat until you pass.</p></div>
+      <div class="step4"><div class="step-num">4</div><b>Sit the final exam</b><p>Finish every unit to unlock a 125-question examination. Score 100 to earn your certificate.</p></div>
+    </div>
   </div></section>
 
   <section class="block"><div class="wrap">
-    <h2 class="sec">Learning that actually teaches</h2><p class="sub">Not a static reader. Every lesson is guided, visual and interactive.</p>
-    <div class="grid g3 stagger">
-      <div class="card"><h3>Lesson-by-lesson</h3><p>Structured teaching: introduction → concepts → examples → key points → summary. Full textbook content preserved.</p></div>
-      <div class="card"><h3>Quiz after every lesson</h3><p>15–20 questions that check real understanding. Fail and you get a detailed explanation of each mistake, then retake.</p></div>
-      <div class="card"><h3>Flashcards</h3><p>Flip cards for definitions, formulas, terms and key facts to power memorisation and revision.</p></div>
-      <div class="card"><h3>Progress tracking</h3><p>See lesson, unit, subject and overall progress with clear bars and completion states.</p></div>
-      <div class="card"><h3>Comprehensive exams</h3><p>A 125-question final examination unlocks when you complete every unit of a subject.</p></div>
-      <div class="card"><h3>Certificates</h3><p>Score 100/125 or above and receive a unique certificate you can print or verify online.</p></div>
+    <h2 class="sec">Choose your grade</h2>
+    <p class="sub">Open a grade to see the subjects available to you.</p>
+    <div class="grid g4">${gradeBlocks}</div>
+  </div></section>
+
+  <section class="block alt"><div class="wrap">
+    <div class="certband">
+      <div>
+        <h2 class="sec" style="margin-bottom:8px">Finish with a certificate that can be verified</h2>
+        <p class="sub" style="margin-bottom:0">Pass the final examination and you receive a certificate carrying your name,
+        the subject, your score and a unique ID. Anyone — a school, a parent, an employer — can check it is genuine
+        using that ID, without needing an account.</p>
+        <div class="cta-row" style="margin-top:22px">
+          <button class="btn btn-primary btn-lg" onclick="location.hash='#/register'">Start now</button>
+          <button class="btn btn-ghost btn-lg" onclick="location.hash='#/verify'">Verify a certificate</button>
+        </div>
+      </div>
+      <div class="certmini">
+        <div class="certmini-in"><div class="certmini-seal">EL</div>
+          <div class="certmini-title">Certificate of Completion</div>
+          <div class="certmini-name">Student Name</div>
+          <div class="certmini-sub">Biology · Grade 9</div>
+          <div class="certmini-foot"><span>Score 108 / 125</span><span>ID CERT-2026-95834</span></div>
+        </div>
+      </div>
     </div>
   </div></section>
 
-  <div class="footer"><div class="wrap"><div><b style="color:#fff">EduLearn</b><br>Grade 9–12 interactive digital learning platform.</div>
-  <div class="muted" style="color:#90a9c2">Learn → Practice → Test → Understand mistakes → Retake → Progress → Complete → Get Certified</div></div></div>`;
+  <section class="block"><div class="wrap">
+    <h2 class="sec">Questions students ask</h2>
+    <p class="sub">Straight answers before you sign up.</p>
+    <div class="faq">
+      <details><summary>Does it cost anything?</summary><p>No. The lessons, assessments, flashcards and certificates are free to use.</p></details>
+      <details><summary>Do I need a computer?</summary><p>No. The platform is built for a phone, and everything works on a normal mobile connection.</p></details>
+      <details><summary>What happens if I fail a lesson?</summary><p>Nothing is lost. You see an explanation for every question you missed and can retake it as many times as you need. Only your best score counts.</p></details>
+      <details><summary>Is this your own material, or the real textbook?</summary><p>The lessons are the Ministry of Education textbook content, organised lesson by lesson to match the official units.</p></details>
+      <details><summary>Which grades are available?</summary><p>Grades 9, 10 and 11 are complete. Grade 12 is being added; you can register but its subjects are not published yet.</p></details>
+    </div>
+  </div></section>
+
+  <div class="footer"><div class="wrap footer-grid">
+    <div>
+      <div class="brand" style="color:#fff"><div class="logo">EL</div>EduLearn</div>
+      <p class="muted" style="color:#8fa3c8;margin-top:10px;max-width:340px">Interactive digital learning for Ethiopian
+      secondary school students. Built on the MoE curriculum.</p>
+    </div>
+    <div><b style="color:#fff;font-size:13px">Learn</b>
+      <div class="footer-links"><a href="#/register">Create account</a><a href="#/login">Sign in</a>
+      <a onclick="scrollToId('how')">How it works</a></div></div>
+    <div><b style="color:#fff;font-size:13px">Subjects</b>
+      <div class="footer-links"><a onclick="goGrade(9)">Grade 9</a><a onclick="goGrade(10)">Grade 10</a>
+      <a onclick="goGrade(11)">Grade 11</a></div></div>
+    <div><b style="color:#fff;font-size:13px">Certificates</b>
+      <div class="footer-links"><a href="#/verify">Verify a certificate</a>
+      <a onclick="location.hash='#/register'">Get certified</a></div></div>
+  </div>
+  <div class="wrap" style="margin-top:22px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12);font-size:12.5px;color:#8fa3c8">
+    © ${new Date().getFullYear()} EduLearn · Learn → practise → certify
+  </div></div>`;
   window.scrollTo(0,0);
 }
 function scrollToId(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth'});}

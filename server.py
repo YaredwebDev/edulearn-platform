@@ -114,10 +114,17 @@ class LoginModel(BaseModel):
 # ---------------- public ----------------
 @app.get("/api/meta")
 def meta():
+    """Public catalogue: what subjects exist per grade, plus honest headline numbers."""
     grades = {}
     for r in db.query("SELECT grade, code, name FROM subjects ORDER BY grade, sort, id"):
         grades.setdefault(r["grade"], []).append({"code": r["code"], "name": r["name"]})
-    return jsonok({"grades": {str(k): v for k, v in sorted(grades.items())}})
+    stats = db.query("""SELECT
+        (SELECT count(*) FROM subjects)  subjects,
+        (SELECT count(*) FROM lessons)   lessons,
+        (SELECT count(*) FROM questions WHERE scope='lesson') questions,
+        (SELECT count(*) FROM flashcards) flashcards""", one=True)
+    return jsonok({"grades": {str(k): v for k, v in sorted(grades.items())},
+                   "stats": stats, "grades_available": sorted(grades.keys())})
 
 @app.get("/api/health")
 def health():
