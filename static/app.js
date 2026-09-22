@@ -2,9 +2,37 @@
 const $app = document.getElementById('app');
 const TOK = 'edulearn_tok', USR = 'edulearn_usr';
 
+/* Storage that can never throw.
+   Phones block localStorage inside a third-party frame (which is exactly how the app is
+   previewed in a chat panel), and a blocked write used to abort the whole login. We probe
+   once, then fall back to memory so signing in and progress still work for the session. */
+const MEMSTORE = Object.create(null);
+const PERSIST = (function(){
+  try{
+    const probe='__edulearn_probe__';
+    window.localStorage.setItem(probe,'1');
+    window.localStorage.removeItem(probe);
+    return window.localStorage;
+  }catch(e){ return null; }
+})();
+function storageWorks(){ return !!PERSIST; }
+function lsGet(k){
+  try{ if(PERSIST){ const v=PERSIST.getItem(k); if(v!==null && v!==undefined) return v; } }catch(e){}
+  return (k in MEMSTORE) ? MEMSTORE[k] : null;
+}
+function lsSet(k,v){
+  MEMSTORE[k]=String(v);                 // always keep a copy for this session
+  try{ if(PERSIST) PERSIST.setItem(k,v); }catch(e){}
+  return !!PERSIST;
+}
+function lsDel(k){
+  try{ if(PERSIST) PERSIST.removeItem(k); }catch(e){}
+  delete MEMSTORE[k];
+}
+
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function jwtok(){return localStorage.getItem(TOK)||'';}
-function store(ok){if(ok){localStorage.removeItem(TOK);}}
+function jwtok(){return lsGet(TOK)||'';}
+function store(ok){if(ok){lsDel(TOK);}}
 async function api(path,opts={}){
   opts.headers = Object.assign({'Content-Type':'application/json'}, opts.headers||{});
   if(opts.body && typeof opts.body!=='string') opts.body=JSON.stringify(opts.body);
@@ -36,8 +64,8 @@ function topbar(user){
       :`<a href="#/verify">Verify a certificate</a><a class="btn btn-primary" href="#/register">Start Learning</a>`}
     </nav></div></header>`;
 }
-function goLogout(){localStorage.removeItem(TOK);location.hash='#/';}
-function currentUser(){try{return JSON.parse(localStorage.getItem(USR)||'null');}catch(e){return null;}}
+function goLogout(){lsDel(TOK);location.hash='#/';}
+function currentUser(){try{return JSON.parse(lsGet(USR)||'null');}catch(e){return null;}}
 
 const LETTERS=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
 
@@ -119,7 +147,7 @@ function viewAuth(mode){
   const f=document.getElementById('authform');
   if(isReg){
     f.innerHTML=`<div class="field"><label>Full Name</label><input class="input" id="fname" placeholder="e.g. Yared Tesfaye"></div>
-      <div class="row2"><div class="field"><label>Grade</label><select class="input" id="fgrade"><option>9</option><option>10</option><option>11</option><option value="12">12 (content coming soon)</option></select></div>
+      <div class="row2"><div class="field"><label>Grade</label><select class="input" id="fgrade"><option>9</option><option>10</option><option>11</option><option>12</option></select></div>
       <div class="field"><label>Age</label><input class="input" id="fage" type="number" min="9" max="99" placeholder="16"></div></div>
       <div class="field"><label>Phone Number</label><input class="input" id="fphone" placeholder="+2519XXXXXXXX"></div>
       <div class="field"><label>School</label><input class="input" id="fschool" placeholder="Your school name"></div>
@@ -144,11 +172,21 @@ async function doLogin(){
   try{const d=await api('/api/login',{method:'POST',body});onAuth(d);}
   catch(e){document.getElementById('autherr').textContent=e.message;}
 }
-function onAuth(d){localStorage.setItem(TOK,d.token);localStorage.setItem(USR,JSON.stringify(d.user));location.hash='#/dashboard';}
+function onAuth(d){
+  try{lsSet(TOK,d.token);lsSet(USR,JSON.stringify(d.user));}catch(e){}
+  location.hash='#/dashboard';
+}
 
 /* ============================ STUDENT APP ============================ */
 function guard(){ if(!currentUser()){location.hash='#/login';return false;} return true; }
 
+let _warnedNoStorage=false;
+function storageNotice(){
+  if(storageWorks()||_warnedNoStorage) return '';
+  _warnedNoStorage=true;
+  return `<p class="muted" style="font-size:13px">This window blocks saved data, so progress is kept
+    only while you use the app.</p>`;
+}
 async function viewDashboard(){
   if(!guard())return;
   const d=await api('/api/dashboard'); const u=d.user; saveUser(u);
@@ -166,16 +204,12 @@ async function viewDashboard(){
         ${statusPill(s.status)}</div>
       <div style="margin-top:10px"><div class="pbar"><div class="pfill blue" style="width:${s.pct}%"></div></div>
       <div class="muted" style="font-size:12px;margin-top:4px">${s.lessons_done}/${s.lessons_total} lessons · ${s.pct}%</div></div>
-    </div>`).join(''):`<div class="card" style="border-left:6px solid var(--amber)">
-      <b>Grade ${u.grade} lessons are still being prepared</b>
-      <p class="muted" style="margin:6px 0">Your account is ready, and everything you complete is saved.
-      The subjects for Grade ${u.grade} are not published yet — they are being added now.
-      In the meantime you can switch to a grade that is ready, or check back soon.</p>
-      <button class="btn btn-primary" onclick="location.hash='#/notifications'">See announcements</button></div>`;
+    </div>`).join(''):`<p class="muted">Subjects for Grade ${u.grade} are being added. Your account is ready.</p>`;
 
   $app.innerHTML = `${topbar(u)}
   <div class="wrap" style="padding-top:22px;padding-bottom:40px">
     <div class="crumb"><a href="#/">Home</a> › <b>Dashboard</b></div>
+    ${storageNotice()}
     <div class="card" style="background:linear-gradient(135deg,#0f3d6b,#1b6aa8);color:#fff;border:none;margin-bottom:20px">
       <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
         <div style="width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center;font-size:22px;font-weight:600;font-family:Georgia,serif;color:#fff;border:1px solid rgba(255,255,255,.4)">${initials(u.full_name)}</div>
@@ -205,7 +239,7 @@ async function viewDashboard(){
   </div>`;
   window.scrollTo(0,0);
 }
-function saveUser(u){localStorage.setItem(USR,JSON.stringify(u));}
+function saveUser(u){lsSet(USR,JSON.stringify(u));}
 function icon(code){return {chem:'Ch',bio:'Bi',phys:'Ph',engl:'En',math:'Ma',agri:'Ag'}[code]||'Su';}
 function initials(name){const p=String(name||'').trim().split(/\s+/).filter(Boolean);return (p.length?p[0][0]:'?')+(p.length>1?p[p.length-1][0]:'');}
 
@@ -239,13 +273,7 @@ async function viewSubject(id){
   const unlocked=d.progress && d.progress.final_unlocked;
   const examBtn=`<button class="btn ${unlocked?'btn-green':'btn-ghost'}" ${unlocked?'':'disabled'} style="margin-top:14px" onclick="location.hash='#/exam/${id}'">
     ${unlocked?'Take the 125-question final examination':'Final examination unlocks when all units are complete'}</button>`;
-  const flatLessons=d.units.reduce((acc,un)=>acc.concat(un.lessons),[]);
-  const nextLesson=flatLessons.find(l=>l.status!=='Completed');
-  const doneCount=d.progress?d.progress.lessons_done:0;
   const notesBtn=`<button class="btn btn-ghost" style="margin-top:14px" onclick="downloadNotes(${id},'${esc(d.subject.name)}')">⬇ Download the notes</button>`;
-  const resumeBtn=nextLesson?`<button class="btn btn-primary" style="margin-top:14px" onclick="location.hash='#/lesson/${nextLesson.id}'">
-    ${doneCount?'Continue where you left off':'Start learning'} — ${esc(nextLesson.title)} →</button>`
-    :`<div class="muted" style="margin-top:12px">All lessons complete — take the final examination below.</div>`;
   const units=d.units.map(un=>{
     const uDone=un.done, uTot=un.total;
     const lessons=un.lessons.map(l=>{
@@ -272,7 +300,7 @@ async function viewSubject(id){
     <div class="card mt16" style="padding:14px 18px"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <div style="font-weight:700">Subject progress</div><div style="flex:1;max-width:300px"><div class="pbar"><div class="pfill blue" style="width:${d.progress?pct(d.progress.lessons_done,d.progress.lessons_total):0}%"></div></div></div>
       <span class="muted">${d.progress?d.progress.lessons_done+'/'+d.progress.lessons_total+' lessons · '+d.progress.units_done+'/'+d.progress.units_total+' units':''}</span></div>
-      ${resumeBtn}${notesBtn}
+      ${notesBtn}
       ${examBtn}</div>
     <div class="unitlist mt24">${units}</div>
     <div class="card mt16"><b>Option B — Get the whole subject as a study pack</b>
@@ -289,7 +317,7 @@ async function viewLesson(id,tab){
   const l=d.lesson;
   const qcount=d.quiz_count;
   const state=d.progress?d.progress.status:'Not Started';
-  let active=tab||localStorage.getItem(LS_TAB)||'learn';
+  let active=tab||lsGet(LS_TAB)||'learn';
   // lock quiz until reviewed? Always allow but show state
   renderLesson(d,u,id,active,qcount,state);
 }
@@ -323,7 +351,7 @@ async function renderLesson(d,u,id,active,qcount,state){
   if(active==='flash')loadFlash(id);
   if(active==='quiz')loadQuiz(id);
 }
-function lessonTab(id,tab){localStorage.setItem(LS_TAB,tab);location.hash='#/lesson/'+id+'/'+tab;}
+function lessonTab(id,tab){lsSet(LS_TAB,tab);location.hash='#/lesson/'+id+'/'+tab;}
 
 async function loadFlash(id){
   const host=document.getElementById('fcholder');let d;
@@ -621,13 +649,13 @@ async function viewAdminLogin(){
 async function doAdminVerify(){
   const b={q_name:$app.querySelector('#q_name').value,q_color:$app.querySelector('#q_color').value,q_number:$app.querySelector('#q_number').value};
   try{const d=await api('/api/admin/verify',{method:'POST',body:b});
-    localStorage.setItem(ADMIN_TOK,d.token);location.hash='#/admin/overview';}
+    lsSet(ADMIN_TOK,d.token);location.hash='#/admin/overview';}
   catch(e){document.getElementById('admerr').textContent=e.message;}
 }
 async function admApi(path,opts={}){
   opts.headers=Object.assign({'Content-Type':'application/json'},opts.headers||{});
   if(opts.body&&typeof opts.body!=='string')opts.body=JSON.stringify(opts.body);
-  const t=localStorage.getItem(ADMIN_TOK)||'';
+  const t=lsGet(ADMIN_TOK)||'';
   opts.headers['Authorization']='Bearer '+t;
   const r=await fetch(path,opts);let d={};try{d=await r.json();}catch(e){}
   if(!r.ok)throw new Error(d.error||('err '+(r.status)));
@@ -635,7 +663,7 @@ async function admApi(path,opts={}){
 }
 let ADM_SECTIONS=[['overview','Overview'],['students','Students'],['tree','Content'],['questions','Question bank'],['notifications','Notifications'],['certs','Certificates']];
 async function viewAdmin(sect){
-  if(!localStorage.getItem(ADMIN_TOK)){location.hash='#/adminreg';return;}
+  if(!lsGet(ADMIN_TOK)){location.hash='#/adminreg';return;}
   sect=sect||'overview';
   const aside=ADM_SECTIONS.map(([k,l])=>`<button class="${k===sect?'on':''}" onclick="location.hash='#/admin/${k}'">${l}</button>`).join('');
   $app.innerHTML=`${topbar()}<div class="wrap" style="padding-top:18px">
@@ -644,7 +672,7 @@ async function viewAdmin(sect){
     <div class="admingrid"><div class="aside">${aside}</div><div id="admb" class="fadein">Loading…</div></div></div>`;
   await admRenderSection(sect);
 }
-function logoutAdmin(){localStorage.removeItem(ADMIN_TOK);location.hash='#/';}
+function logoutAdmin(){lsDel(ADMIN_TOK);location.hash='#/';}
 async function admRenderSection(sect){
   const b=document.getElementById('admb');if(!b)return;
   if(sect==='overview')return admOverview(b);
@@ -714,7 +742,7 @@ function admSubTree(sid){
     <div class="muted" style="font-size:12px;margin-top:4px">${un.lessons.map(l=>`<a href="#/admin/qedit/${l.id}">${esc(l.title)}</a>`).join(' · ')}</div></div>`).join('')||'no units'}`;
 }
 async function admLessonQuestions(lid){
-  if(!localStorage.getItem(ADMIN_TOK)){location.hash='#/adminreg';return;}
+  if(!lsGet(ADMIN_TOK)){location.hash='#/adminreg';return;}
   const d=await admApi('/api/admin/questions?lesson_id='+lid);
   $app.innerHTML=`${topbar()}<div class="wrap" style="padding-top:16px">
    <button class="btn btn-ghost btn-sm" onclick="location.hash='#/admin/tree'">← Content</button>

@@ -631,12 +631,31 @@ def cert_lookup(request: Request, cert_id: str):
     return jsonok({"valid": True, "certificate": c})
 
 # ---------------- static SPA ----------------
+def _spa_html():
+    """Serve the SPA with a cache-busting version on its assets.
+
+    Without this a phone that has already visited keeps the old app.js from its cache and
+    never receives a fix. The version is the asset's modification time, so it changes
+    exactly when the file does.
+    """
+    path = os.path.join(STATIC, "index.html")
+    with open(path, encoding="utf-8") as fh:
+        html = fh.read()
+    for asset in ("app.js", "style.css"):
+        ap = os.path.join(STATIC, asset)
+        try:
+            v = str(int(os.path.getmtime(ap)))
+        except OSError:
+            v = "1"
+        html = html.replace("/static/%s" % asset, "/static/%s?v=%s" % (asset, v))
+    return HTMLResponse(html, headers={"Cache-Control": "no-cache, must-revalidate"})
+
 @app.get("/")
 def index():
-    return FileResponse(os.path.join(STATIC, "index.html"))
+    return _spa_html()
 @app.get("/app")
 def index2():
-    return FileResponse(os.path.join(STATIC, "index.html"))
+    return _spa_html()
 
 # ---------------- unit PDF download ----------------
 @app.get("/api/unit/{uid}/pdf")
@@ -673,3 +692,11 @@ def build_unit_pdf_html(unit, lessons):
     </body></html>"""
 
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+
+@app.middleware("http")
+async def _revalidate_static(request, call_next):
+    """Let browsers revalidate app assets instead of holding a stale copy."""
+    resp = await call_next(request)
+    if request.url.path.startswith("/static/"):
+        resp.headers["Cache-Control"] = "no-cache, must-revalidate"
+    return resp
