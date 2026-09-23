@@ -185,16 +185,31 @@ def query(sql, params=(), one=False):
         return dict(rows[0]) if rows else None
     return [dict(r) for r in rows]
 
+def _flush():
+    """Fold the write-ahead log back into platform.db after every write.
+
+    In WAL mode the committed rows live in platform.db-wal until a checkpoint
+    happens. That file is an easy thing to lose (a restart, a copy, a snapshot),
+    and when it goes the rows go with it. Checkpointing on every write keeps the
+    real database file the source of truth."""
+    try:
+        c = _conn()
+        c.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    except Exception:
+        pass
+
 def execute(sql, params=()):
     c = _conn()
     cur = c.execute(sql, params)
     c.commit()
+    _flush()
     return cur.lastrowid
 
 def execute_many(sql, seq):
     c = _conn()
     c.executemany(sql, seq)
     c.commit()
+    _flush()
 
 def now():
     return time.time()

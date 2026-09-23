@@ -156,6 +156,15 @@ def _canonical_phone_tidy():
     except Exception as e:
         print("phone tidy skipped:", e)
 
+@app.on_event("shutdown")
+def _flush_db_on_shutdown():
+    """Fold any pending writes into platform.db before the process stops."""
+    try:
+        db.query("PRAGMA wal_checkpoint(TRUNCATE)")
+        print("db: checkpointed on shutdown")
+    except Exception as e:
+        print("db: shutdown checkpoint skipped:", e)
+
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
